@@ -2,24 +2,46 @@
   "server": "examplename",
   "servertype": "java",
   "details": {
-    "file": "url to jar",
+    "fileresourcesource": "jenkins/url/other",
+    "file": "",
     "plugins": [
       {
         "name": "ExamplePluginJenkins",
         "path": ".",
-        "download": "jenkins/Artifact/Artifact File Name"
+        "resourcetype": "jenkins",
+        "download": "Artifact/Artifact File Name",
+        "auth": {
+          "username": "nan",
+          "password": "nan",
+          "token": "nan",
+          "secret": "nan"
+        }
       },
       {
         "name": "ExamplePluginURL",
         "path": ".",
-        "download": "url/https://example.com/"
+        "resourcetype": "url",
+        "download": "https://example.com/examplefile.extension",
+        "auth": {
+          "username": "nan",
+          "password": "nan",
+          "token": "nan",
+          "secret": "nan"
+        }
       }
     ],
     "configs": [
       {
         "name": "ExampleConfig",
         "path": ".",
-        "download": "url/https://example.com/"
+        "resourcetype": "url",
+        "download": "https://example.com/examplefile.extension",
+        "auth": {
+          "username": "nan",
+          "password": "nan",
+          "token": "nan",
+          "secret": "nan"
+        }
       }
     ]
   }

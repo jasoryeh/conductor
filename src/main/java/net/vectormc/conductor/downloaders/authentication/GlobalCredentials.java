@@ -1,6 +1,7 @@
 package net.vectormc.conductor.downloaders.authentication;
 
 
+import lombok.Getter;
 import net.vectormc.conductor.Conductor;
 import net.vectormc.conductor.config.Configuration;
 
@@ -8,16 +9,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GlobalCredentials {
-
+    @Getter
     public Map<ConfigurationVariables, String> configurationValues;
 
     public GlobalCredentials() {
-        this.load();
+        this.setup();
     }
 
-    private void load() {
-        Configuration config = Conductor.getInstance().getConfig();
-        this.configurationValues = new HashMap<>();
+    private void setup() {
+        for(ConfigurationVariables configurationVariables : ConfigurationVariables.values()) {
+            configurationValues.put(configurationVariables, null);
+        }
     }
 
     enum ConfigurationVariables {
