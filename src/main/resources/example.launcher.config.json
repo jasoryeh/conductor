@@ -1,0 +1,26 @@
+{
+  "server": "examplename",
+  "servertype": "java",
+  "details": {
+    "file": "url to jar",
+    "plugins": [
+      {
+        "name": "ExamplePluginJenkins",
+        "path": ".",
+        "download": "jenkins/Artifact/Artifact File Name"
+      },
+      {
+        "name": "ExamplePluginURL",
+        "path": ".",
+        "download": "url/https://example.com/"
+      }
+    ],
+    "configs": [
+      {
+        "name": "ExampleConfig",
+        "path": ".",
+        "download": "url/https://example.com/"
+      }
+    ]
+  }
+}
