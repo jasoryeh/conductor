@@ -1,6 +1,6 @@
 package net.vectormc.conductor.log;
 
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.StringJoiner;
 
@@ -50,15 +50,16 @@ public class Logger {
     }
 
 
-    /**
+    /*
      * Methods to help the logger
      */
+    
     /**
      * Returns a full date and time zone string for use in the log message
      * @return String with brackets to be used in the message
      */
     private static String logDate() {
-        return "[" + DateTimeFormatter.ISO_ZONED_DATE_TIME.format(Instant.now()) + "]";
+        return "[" + DateTimeFormatter.ISO_ZONED_DATE_TIME.format(ZonedDateTime.now()) + "]";
     }
 
     /**

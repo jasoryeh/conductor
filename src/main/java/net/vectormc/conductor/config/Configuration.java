@@ -1,12 +1,18 @@
 package net.vectormc.conductor.config;
 
 import lombok.Getter;
-import net.vectormc.conductor.Boot;
+import net.vectormc.conductor.Conductor;
+import net.vectormc.conductor.ConductorMain;
 import net.vectormc.conductor.log.Logger;
+import net.vectormc.conductor.util.Utility;
+import org.apache.commons.io.FileUtils;
 
 import java.io.*;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 /**
  * Represents one configuration file
@@ -15,6 +21,10 @@ import java.util.Properties;
  */
 public class Configuration {
     private static List<Configuration> instances;
+
+    static {
+        instances = new ArrayList<>();
+    }
 
     @Getter
     private final String file;
@@ -42,7 +52,7 @@ public class Configuration {
             Logger.getLogger().error("Unexpected error: IO. Exiting.");
             e.printStackTrace();
 
-            Boot.shutdown(true);
+            Conductor.getInstance().shutdown(true);
         } catch(Exception e) {
             Logger.getLogger().error("Unexpected error: UNKNOWN. Exiting.");
             e.printStackTrace();
@@ -62,9 +72,10 @@ public class Configuration {
             if(this.allowCreation) {
                 Logger.getLogger().info("Trying to create " + this.file);
                 try {
-                    InputStream streamInFromJar = Boot.class.getResourceAsStream(this.file);
-                    FileOutputStream streamOutToFiles = new FileOutputStream(this.file);
-                    streamOutToFiles.write(streamInFromJar.read());
+                    URL url = getClass().getResource("/" + this.file);
+                    File fo = new File(Utility.getCWD() + File.separator + this.file);
+
+                    FileUtils.copyURLToFile(url, fo);
                 } catch(Exception e) {
                     Logger.getLogger().warn("No default config for " + this.file + " exists, creating blank.");
                     if(file.createNewFile()) {
@@ -127,5 +138,15 @@ public class Configuration {
      */
     public void setString(String key, String value) {
         this.rawProperties.setProperty(key, value);
+    }
+
+    /**
+     * Finds if a key exists, a value matching the randomly generated one is near impossible
+     * @param key Key to check
+     * @return if key exists
+     */
+    public boolean entryExists(String key) {
+        String u = "oof" + UUID.randomUUID() + "oof";
+        return this.rawProperties.getProperty(key, u).equalsIgnoreCase(u);
     }
 }

@@ -4,48 +4,44 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Credentials {
-    public Map<ConfigurationVariables, String> configurationValues;
+    public Map<CredentialType, Map<String, String>> credentials;
 
     public Credentials() {
-        this.setup();
+        this.reset();
     }
 
-    private void setup() {
-        this.configurationValues = new HashMap<>();
+    private void reset() {
+        this.credentials = new HashMap<>();
     }
 
     public boolean isAuthenticationNotRequired() {
-        return configurationValues.isEmpty();
+        return credentials.isEmpty();
     }
 
-    public boolean isMethodSet(ConfigurationVariables var) {
-        return this.configurationValues.containsKey(var);
+    public boolean isAuthenticationTypePresent(CredentialType var) {
+        return this.credentials.containsKey(var);
     }
 
-    public void addRequiredAuthentication(ConfigurationVariables var, String value) {
-        this.configurationValues.put(var, value);
+    public void addToRequiredCredentials(CredentialType var, String key, String value) {
+        if(this.credentials.containsKey(var)) {
+            Map<String, String> take = this.credentials.get(var);
+            this.credentials.remove(var);
+            take.put(key, value);
+            this.credentials.put(var, take);
+        }
     }
 
-    public void removeRequiredAuthentication(ConfigurationVariables var) {
-        this.configurationValues.remove(var);
+    public void removeRequiredAuthentication(CredentialType var) {
+        this.credentials.remove(var);
     }
 
-    enum ConfigurationVariables {
-        API_AUTHENTICATION_TOKEN,
-        API_AUTHENTICATION_SECRET,
-        API_AUTHENTICATION_USERNAME,
-        API_AUTHENTICATION_PASSWORD,
-        URL_AUTHENTICATION_TOKEN,
-        URL_AUTHENTICAION_SECRET,
-        URL_AUTHENTICATION_USERNAME,
-        URL_AUTHENTICATION_PASSWORD,
-        JENKINS_AUTHENTICATION_USERNAME,
-        JENKINS_AUTHENTICATION_PASSWORD,
-        SQL_AUTHENTICATION_USERNAME,
-        SQL_AUTHENTICATION_PASSWORD,
-        OTHER_AUTHENTICATION_USERNAME,
-        OTHER_AUTHENTICATION_PASSWORD,
-        OTHER_AUTHENTICATION_TOKEN,
-        OTHER_AUTHENTICATION_SECRET,
+    public Map<String, String> getCredentials(CredentialType var) {
+        return this.credentials.get(var);
+    }
+
+    enum CredentialType {
+        GET,
+        POST,
+        OTHER
     }
 }
