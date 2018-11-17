@@ -20,6 +20,7 @@ public class Conductor extends Boot {
 
     public void onEnable() {
         this.config = new Configuration("serverlauncher.properties", true);
+        this.config.reload();
         // other config stuff
 
         if(!ServerJsonConfigProcessor.process(LauncherPropertiesProcessor.process(this.config))) this.shutdown(true);
