@@ -3,8 +3,10 @@ package net.vectormc.conductor;
 import lombok.Getter;
 import lombok.Setter;
 import net.vectormc.conductor.config.Configuration;
+import net.vectormc.conductor.log.Logger;
 import net.vectormc.conductor.processor.LauncherPropertiesProcessor;
 import net.vectormc.conductor.processor.ServerJsonConfigProcessor;
+import net.vectormc.conductor.scheduler.Threads;
 
 public class Conductor extends Boot {
     @Getter
@@ -21,7 +23,6 @@ public class Conductor extends Boot {
     public void onEnable() {
         this.config = new Configuration("serverlauncher.properties", true);
         this.config.reload();
-        // other config stuff
 
         if(!ServerJsonConfigProcessor.process(LauncherPropertiesProcessor.process(this.config))) this.shutdown(true);
     }
@@ -31,6 +32,8 @@ public class Conductor extends Boot {
     public void shutdown(boolean err) {
         this.onDisable();
         System.exit(err ? 1 : 0);
+        Logger.getLogger().info("bye.");
+        Threads.sleep(10000);
     }
 
     public void reload() {

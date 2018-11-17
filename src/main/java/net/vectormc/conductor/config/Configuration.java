@@ -147,6 +147,6 @@ public class Configuration {
      */
     public boolean entryExists(String key) {
         String u = "oof" + UUID.randomUUID() + "oof";
-        return this.rawProperties.getProperty(key, u).equalsIgnoreCase(u);
+        return !this.rawProperties.getProperty(key, u).equalsIgnoreCase(u);
     }
 }

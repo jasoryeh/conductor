@@ -4,22 +4,17 @@ import lombok.Getter;
 import lombok.Setter;
 import net.vectormc.conductor.downloaders.authentication.Credentials;
 import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
+import net.vectormc.conductor.util.Utility;
 
 import java.io.File;
-import java.nio.file.FileSystems;
 
 public abstract class Downloader {
-    @Getter
     @Setter
-    private static File tempFolder;
+    private static File tempFolder = new File(Utility.getCWD() + File.separator + "launcher_tmp");
 
-    static {
-        if(tempFolder == null || !tempFolder.isDirectory()) {
-            File f = new File("launcher_tmp");
-            boolean done = f.exists() && f.isDirectory() || f.mkdir();
-            if(!done) f = new File(FileSystems.getDefault().getPath(".").toAbsolutePath().toString());
-            tempFolder = f;
-        }
+    public static File getTempFolder() {
+        tempFolder.mkdirs();
+        return tempFolder;
     }
 
 
@@ -56,7 +51,7 @@ public abstract class Downloader {
         return downloadedFile.isDirectory();
     }
 
-    public String getFileName() {
+    public String getDLFileName() {
         return downloadedFile.getName();
     }
 

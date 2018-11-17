@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 
 public class LauncherPropertiesProcessor {
     public static JsonObject process(Configuration config) {
+        Logger.getLogger().debug(config.entryExists("offline"), Boolean.valueOf(config.getString("offline")), config.entryExists("offlineConfig"));
+
         if(config.entryExists("offline") && Boolean.valueOf(config.getString("offline")) && config.entryExists("offlineConfig")) {
             File offlineConfig = new File(config.getString("offlineConfig"));
             if(offlineConfig.exists()) {
