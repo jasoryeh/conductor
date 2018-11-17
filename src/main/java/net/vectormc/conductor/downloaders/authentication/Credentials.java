@@ -40,8 +40,6 @@ public class Credentials {
     }
 
     public enum CredentialType {
-        GET,
-        POST,
-        OTHER
+        DEFAULT
     }
 }
