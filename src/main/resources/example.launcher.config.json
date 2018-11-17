@@ -1,48 +1,26 @@
 {
-  "server": "examplename",
-  "servertype": "java",
-  "details": {
-    "fileresourcesource": "jenkins/url/other",
-    "file": "",
-    "plugins": [
-      {
-        "name": "ExamplePluginJenkins",
-        "path": ".",
-        "resourcetype": "jenkins",
-        "download": "Artifact/Artifact File Name",
-        "auth": {
-          "username": "nan",
-          "password": "nan",
-          "token": "nan",
-          "secret": "nan"
+  "templateName": "examplename", // name for this setup, current server archived if old config's name was different
+  "type": "java", // java only currently
+  "launchOptions": "", // extra launch params, optional
+  "overwrite": true, // or false, implied if not present | tells to overwrite current setup if needed
+  "launch": "filename.jar", // name of file to launch
+  "tree" : { // file setup
+    "example.example": { // example item in a tree
+      "type": "file/folder", // is this a file or a folder | REQUIRED
+      "retrieval": { // details of retrieval
+        "retrieve": true, // or false, implied if not present
+        "method": "url/jenkins/specified", // how to retrieve
+        "unzipRequired": false, // or true, if not present, implied false, if present file must be zip and will be extracted to directory
+        "auth": true, // or false, implied if not present
+        "url": "https://example.com/host", // host of downloads ex jenkins host or url to download
+        "requestType": "GET|POST|UNKNOWN", // if url, how to send request
+        "authDetails": { // Optional, ifnored if auth not present, or false
+          // Key-value pairs for headers ex. "Authorization": "token",
         }
       },
-      {
-        "name": "ExamplePluginURL",
-        "path": ".",
-        "resourcetype": "url",
-        "download": "https://example.com/examplefile.extension",
-        "auth": {
-          "username": "nan",
-          "password": "nan",
-          "token": "nan",
-          "secret": "nan"
-        }
+      "contents": { // Contents of this folder in format of "tree": {} in tree OR "content": "text content" if a file
+        // appended to downloaded or existing file/folder if downloaded/present already
       }
-    ],
-    "configs": [
-      {
-        "name": "ExampleConfig",
-        "path": ".",
-        "resourcetype": "url",
-        "download": "https://example.com/examplefile.extension",
-        "auth": {
-          "username": "nan",
-          "password": "nan",
-          "token": "nan",
-          "secret": "nan"
-        }
-      }
-    ]
+    }
   }
 }

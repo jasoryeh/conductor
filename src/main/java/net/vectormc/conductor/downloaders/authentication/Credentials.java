@@ -39,7 +39,7 @@ public class Credentials {
         return this.credentials.get(var);
     }
 
-    enum CredentialType {
+    public enum CredentialType {
         GET,
         POST,
         OTHER
