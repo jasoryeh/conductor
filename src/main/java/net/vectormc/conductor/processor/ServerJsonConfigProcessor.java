@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import net.vectormc.conductor.Conductor;
 import net.vectormc.conductor.config.ServerConfig;
+import net.vectormc.conductor.debug.DebugException;
 import net.vectormc.conductor.downloaders.URLDownloader;
 import net.vectormc.conductor.downloaders.authentication.Credentials;
 import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
@@ -21,7 +22,7 @@ import java.util.zip.ZipInputStream;
 public class ServerJsonConfigProcessor {
     public static ServerConfig process(final JsonObject jsonObject) {
         String name = jsonObject.get("templateName").getAsString();
-        ServerType type = ServerType.valueOf(jsonObject.get("type").toString());
+        ServerType type = ServerType.valueOf(jsonObject.get("type").getAsString().toUpperCase());
 
         String launchFile = jsonObject.get("launch").getAsString();
         String launchOptions = jsonObject.get("launchOptions").getAsString();
@@ -34,7 +35,8 @@ public class ServerJsonConfigProcessor {
         ServerConfig config = new ServerConfig(name, type, launchFile, launchOptions, overwrite, tree);
 
         if (!processTree(tree, config, "", true)) {
-            Logger.getLogger().error("Something went wront, shutting down.");
+            Logger.getLogger().error("Something went wrong, shutting down.");
+            new DebugException().printStackTrace();
             Conductor.getInstance().shutdown(true);
         }
 
@@ -50,8 +52,6 @@ public class ServerJsonConfigProcessor {
      * @return
      */
     private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents, boolean recursive) {
-        // TODO: I'll come back
-
         for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
             if(!stringJsonElementEntry.getValue().isJsonObject()) continue;
 
@@ -59,8 +59,7 @@ public class ServerJsonConfigProcessor {
 
             processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf, parents, recursive);
         }
-
-        return false;
+        return true;
     }
 
     /**
@@ -81,7 +80,7 @@ public class ServerJsonConfigProcessor {
             if(!f.delete()) {
                 Logger.getLogger().error("[OVERWRITE] UNABLE TO DELETE " + f.getAbsolutePath());
             } else {
-                Logger.getLogger().info("[OVERWRITE] OVERWRITE: " + f.getAbsolutePath() + "(Deleted)");
+                Logger.getLogger().info("[OVERWRITE] OVERWRITE: " + f.getAbsolutePath() + " (Deleted)");
             }
         }
 
@@ -94,10 +93,12 @@ public class ServerJsonConfigProcessor {
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
-                for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
-                    // Tree only, folders can't have "text content"
-                    if(contents.getKey().equalsIgnoreCase("tree")) {
-                        processTree(contents.getValue().getAsJsonObject(), conf, parents + File.separator + fileName, recursive);
+                if(obj.get("contents") != null) {
+                    for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
+                        // Tree only, folders can't have "text content"
+                        if(contents.getKey().equalsIgnoreCase("tree")) {
+                            processTree(contents.getValue().getAsJsonObject(), conf, parents + File.separator + fileName, recursive);
+                        }
                     }
                 }
                 return true;
@@ -196,12 +197,12 @@ public class ServerJsonConfigProcessor {
                 }
                 return true;
             } else {
-                RetrieveType type = RetrieveType.valueOf(obj.get("method").getAsString());
+                RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString().toUpperCase());
 
                 Credentials credentials = new Credentials();
-                Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType").getAsString());
+                Credentials.CredentialType ct = Credentials.CredentialType.valueOf(retrieval.get("requestType").getAsString());
 
-                for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
+                for (Map.Entry<String, JsonElement> authDetails : retrieval.get("authDetails").getAsJsonObject().entrySet()) {
                     // (should) do nothing if auth details aren't present
                     credentials.addToRequiredCredentials(ct, authDetails.getKey(), authDetails.getValue().getAsString());
                 }
@@ -209,10 +210,12 @@ public class ServerJsonConfigProcessor {
                 switch(type) {
                     case URL:
                         try {
-                            URLDownloader ud = new URLDownloader(obj.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
+                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
                             ud.download();
 
-                            Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            Files.copy(
+                                    ud.getDownloadedFile().toPath(),
+                                    f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             // ... move on
                         } catch(RetrievalException re) {
                             re.printStackTrace();

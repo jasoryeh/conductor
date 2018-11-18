@@ -1,5 +1,6 @@
 package net.vectormc.conductor;
 
+import net.vectormc.conductor.downloaders.Downloader;
 import net.vectormc.conductor.log.Logger;
 
 import java.io.File;
@@ -12,6 +13,7 @@ public class ConductorMain {
 
         Logger.getLogger().info("File separator - " + File.separator);
         Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
+        Logger.getLogger().info("Temporary in - " + Downloader.getTempFolder().getAbsolutePath());
         Logger.getLogger().info("--- Info ---");
 
         Conductor.setInstance(

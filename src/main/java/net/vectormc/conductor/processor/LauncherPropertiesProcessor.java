@@ -18,27 +18,32 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Scanner;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class LauncherPropertiesProcessor {
     public static JsonObject process(Configuration config) {
-        Logger.getLogger().debug(config.entryExists("offline"), Boolean.valueOf(config.getString("offline")), config.entryExists("offlineConfig"));
-
         if(config.entryExists("offline") && Boolean.valueOf(config.getString("offline")) && config.entryExists("offlineConfig")) {
             File offlineConfig = new File(config.getString("offlineConfig"));
             if(offlineConfig.exists()) {
                 try {
+                    File jsonConfig = new File(Utility.getCWD().toString() + File.separator + config.getString("offlineConfig"));
+                    StringBuilder builder = new StringBuilder((int) jsonConfig.length());
 
-                    URL dlu = new URL(Utility.getCWD().toString() + File.separator + config.getString("offlineConfig"));
-                    InputStream dli = dlu.openStream();
-                    BufferedReader dlbr = new BufferedReader(new InputStreamReader(dli));
-                    String jsonraw = dlbr.lines().collect(Collectors.joining(System.lineSeparator()));
+                    try (Scanner scanner = new Scanner(jsonConfig)) {
+                        while(scanner.hasNextLine()) {
+                            builder.append(scanner.nextLine()).append(System.lineSeparator());
+                        }
+                    }
+
+                    String jsonraw = builder.toString();
 
                     // send back json
                     return new JsonParser().parse(jsonraw).getAsJsonObject();
                 } catch(Exception e) {
                     // Any exceptions
+                    e.printStackTrace();
                     Logger.getLogger().error("Unable to load offline configuration.");
                     Conductor.getInstance().shutdown(true);
                 }
@@ -94,6 +99,6 @@ public class LauncherPropertiesProcessor {
         new RuntimeException("Oh no! This isn't supposed to happen!").printStackTrace();
         Conductor.getInstance().shutdown(true);
 
-        return new JsonObject();
+        return null;
     }
 }

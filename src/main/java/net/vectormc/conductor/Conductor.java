@@ -1,5 +1,6 @@
 package net.vectormc.conductor;
 
+import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import net.vectormc.conductor.config.Configuration;
@@ -32,7 +33,19 @@ public class Conductor extends Boot {
         this.config = new Configuration("serverlauncher.properties", true);
         this.config.reload();
 
-        ServerConfig conf = ServerJsonConfigProcessor.process(LauncherPropertiesProcessor.process(this.config));
+        JsonObject obj = LauncherPropertiesProcessor.process(this.config);
+
+        if(obj == null) {
+            Logger.getLogger().error("Unable to process launcher properties");
+            getInstance().shutdown(true);
+        }
+
+        ServerConfig conf = ServerJsonConfigProcessor.process(obj);
+
+        if(conf == null) {
+            Logger.getLogger().error("Unable to process server properties");
+            getInstance().shutdown(true);
+        }
 
         conf.getFileForLaunch();
 

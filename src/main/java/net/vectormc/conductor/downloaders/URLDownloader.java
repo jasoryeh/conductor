@@ -31,8 +31,11 @@ public class URLDownloader extends Downloader {
             credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
 
             ReadableByteChannel i = Channels.newChannel(huc.getInputStream());
-            FileOutputStream o = new FileOutputStream(new File(getTempFolder() + File.separator + this.fileName));
+            File out = new File(getTempFolder() + File.separator + this.fileName);
+            FileOutputStream o = new FileOutputStream(out);
             o.getChannel().transferFrom(i, 0, Long.MAX_VALUE);
+
+            downloadedFile = out;
 
             o.close();
             i.close();
