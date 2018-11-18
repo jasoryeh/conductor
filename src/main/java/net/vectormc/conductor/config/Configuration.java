@@ -2,7 +2,6 @@ package net.vectormc.conductor.config;
 
 import lombok.Getter;
 import net.vectormc.conductor.Conductor;
-import net.vectormc.conductor.ConductorMain;
 import net.vectormc.conductor.log.Logger;
 import net.vectormc.conductor.util.Utility;
 import org.apache.commons.io.FileUtils;

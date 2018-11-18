@@ -2,8 +2,10 @@ package net.vectormc.conductor.config;
 
 import com.google.gson.JsonObject;
 import lombok.Getter;
-import lombok.Setter;
 import net.vectormc.conductor.processor.ServerJsonConfigProcessor;
+import net.vectormc.conductor.util.Utility;
+
+import java.io.File;
 
 public class ServerConfig {
     @Getter
@@ -19,10 +21,6 @@ public class ServerConfig {
     @Getter
     private final JsonObject json;
 
-    @Getter
-    @Setter
-    private boolean launchFilePresent;
-
     public ServerConfig(String name, ServerJsonConfigProcessor.ServerType type, String launchFile, String launchOptions, boolean overwrite, JsonObject json) {
         this.name = name;
         this.type = type;
@@ -30,5 +28,9 @@ public class ServerConfig {
         this.launchOptions = launchOptions;
         this.overwrite = overwrite;
         this.json = json;
+    }
+
+    public File getFileForLaunch() {
+        return new File(Utility.getCWD() + File.separator + launchFile);
     }
 }

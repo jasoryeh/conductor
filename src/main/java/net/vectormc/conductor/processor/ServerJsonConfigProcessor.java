@@ -12,8 +12,6 @@ import net.vectormc.conductor.log.Logger;
 import net.vectormc.conductor.util.Utility;
 
 import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
@@ -21,7 +19,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class ServerJsonConfigProcessor {
-    public static boolean process(final JsonObject jsonObject) {
+    public static ServerConfig process(final JsonObject jsonObject) {
         String name = jsonObject.get("templateName").getAsString();
         ServerType type = ServerType.valueOf(jsonObject.get("type").toString());
 
@@ -35,7 +33,12 @@ public class ServerJsonConfigProcessor {
 
         ServerConfig config = new ServerConfig(name, type, launchFile, launchOptions, overwrite, tree);
 
-        return processTree(tree, config, "",true);
+        if (!processTree(tree, config, "", true)) {
+            Logger.getLogger().error("Something went wront, shutting down.");
+            Conductor.getInstance().shutdown(true);
+        }
+
+        return config;
     }
 
     /**
@@ -52,7 +55,7 @@ public class ServerJsonConfigProcessor {
         for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
             if(!stringJsonElementEntry.getValue().isJsonObject()) continue;
 
-            if(stringJsonElementEntry.getKey().equals(conf.getLaunchFile())) conf.setLaunchFilePresent(true);
+            // if(stringJsonElementEntry.getKey().equals(conf.getLaunchFile())) conf.setLaunchFilePresent(true);
 
             processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf, parents, recursive);
         }
