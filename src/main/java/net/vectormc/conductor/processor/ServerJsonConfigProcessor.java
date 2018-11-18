@@ -14,6 +14,8 @@ import net.vectormc.conductor.util.Utility;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -44,7 +46,7 @@ public class ServerJsonConfigProcessor {
      * @param recursive whether to not to go through all of them
      * @return
      */
-    public static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents, boolean recursive) {
+    private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents, boolean recursive) {
         // TODO: I'll come back
 
         for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
@@ -70,26 +72,27 @@ public class ServerJsonConfigProcessor {
     private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents, boolean recursive) {
         String path = Utility.getCWD() + File.separator +
                 (parents.equalsIgnoreCase("") ? "" : File.separator + parents + File.separator) + fileName;
-
         File f = new File(path);
+
         if(f.exists() && conf.isOverwrite()) {
             if(!f.delete()) {
-                Logger.getLogger().error("UNABLE TO DELETE " + f.getAbsolutePath());
+                Logger.getLogger().error("[OVERWRITE] UNABLE TO DELETE " + f.getAbsolutePath());
             } else {
-                Logger.getLogger().info("OVERWRITE: " + f.getAbsolutePath() + "(Deleted)");
+                Logger.getLogger().info("[OVERWRITE] OVERWRITE: " + f.getAbsolutePath() + "(Deleted)");
             }
         }
 
+        Logger.getLogger().info("[WRITE] Create " + f.getAbsolutePath());
+
         if(obj.get("type").getAsString().equalsIgnoreCase("folder")) {
-            if(!f.mkdir()) {
-                Logger.getLogger().error("Unable to mkdir " + f.getAbsolutePath());
-            } else {
-                Logger.getLogger().info("Made directory " + f.getAbsolutePath());
+            if (!f.mkdirs()) {
+                return false;
             }
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
+                    // Tree only, folders can't have "text content"
                     if(contents.getKey().equalsIgnoreCase("tree")) {
                         processTree(contents.getValue().getAsJsonObject(), conf, parents + File.separator + fileName, recursive);
                     }
@@ -102,6 +105,7 @@ public class ServerJsonConfigProcessor {
                 Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType").getAsString());
 
                 for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
+                    // (should) do nothing if auth details aren't present
                     credentials.addToRequiredCredentials(ct, authDetails.getKey(), authDetails.getValue().getAsString());
                 }
 
@@ -110,6 +114,7 @@ public class ServerJsonConfigProcessor {
                         try {
                             URLDownloader ud = new URLDownloader(obj.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
                             ud.download();
+                            // Unzip
                             if (obj.get("unzipRequired").getAsBoolean()) {
                                 FileInputStream fis = new FileInputStream(ud.getDownloadedFile().getAbsolutePath());
 
@@ -136,11 +141,76 @@ public class ServerJsonConfigProcessor {
                                     ze = zis.getNextEntry();
                                 }
 
-
                                 zis.closeEntry();
                                 zis.close();
                                 fis.close();
+
+                            } else {
+                                Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
+                            // Finish unzip
+
+                            // ... move on
+                        } catch(RetrievalException re) {
+                            re.printStackTrace();
+                            Conductor.getInstance().shutdown(true);
+                        } catch(FileNotFoundException fnfe) {
+                            fnfe.printStackTrace();
+                            Conductor.getInstance().shutdown(true);
+                        } catch(IOException ioe) {
+                            ioe.printStackTrace();
+                            Conductor.getInstance().shutdown(true);
+                        }
+                        break;
+                    case JENKINS:
+                        // TODO: Jenkins WIP
+                        throw new UnsupportedOperationException();
+                    case SPECIFIED:
+                        // Specified not supposed to land here
+                        throw new UnsupportedOperationException();
+                    default:
+                        // Other types
+                        throw new UnsupportedOperationException();
+                }
+            }
+        } else if(obj.get("type").getAsString().equalsIgnoreCase("file")) {
+            JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
+            if (!retrieval.get("retrieve").getAsBoolean()) {
+                try {
+                    if (!f.createNewFile()) {
+                        throw new IOException("Unable to create new file " + f.getAbsolutePath());
+                    }
+                    for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
+                        // Tree only, folders can't have "text content"
+                        if(contents.getKey().equalsIgnoreCase("content")) {
+                            FileOutputStream fos = new FileOutputStream(f);
+                            fos.write(contents.getValue().getAsString().getBytes());
+                            fos.close();
+                        }
+                    }
+                } catch(IOException io) {
+                    io.printStackTrace();
+                }
+                return true;
+            } else {
+                RetrieveType type = RetrieveType.valueOf(obj.get("method").getAsString());
+
+                Credentials credentials = new Credentials();
+                Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType").getAsString());
+
+                for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
+                    // (should) do nothing if auth details aren't present
+                    credentials.addToRequiredCredentials(ct, authDetails.getKey(), authDetails.getValue().getAsString());
+                }
+
+                switch(type) {
+                    case URL:
+                        try {
+                            URLDownloader ud = new URLDownloader(obj.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
+                            ud.download();
+
+                            Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            // ... move on
                         } catch(RetrievalException re) {
                             re.printStackTrace();
                             Conductor.getInstance().shutdown(true);
