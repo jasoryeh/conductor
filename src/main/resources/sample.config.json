@@ -1,0 +1,40 @@
+{
+  "templateName": "configTest",
+  "type": "java",
+  "launchOptions": "",
+  "overwrite": true,
+  "launch": "server.jar",
+  "tree" : {
+    "server.jar": {
+      "type": "file",
+      "retrieval": {
+        "retrieve": true,
+        "method": "url",
+        "unzipRequired": false,
+        "auth": false,
+        "url": "https://cdn.getbukkit.org/spigot/spigot-1.13.2.jar",
+        "requestType": "DEFAULT",
+        "authDetails": {}
+      }
+    },
+    "testfolder1": {
+      "type": "folder",
+      "retrieval": {
+        "retrieve": false
+      },
+      "contents": {
+        "tree": {
+          "testfile1": {
+            "type": "file",
+            "retrieval": {
+              "retrieve": "false"
+            },
+            "contents": {
+              "content": "hello my name jeff"
+            }
+          }
+        }
+      }
+    }
+  }
+}
