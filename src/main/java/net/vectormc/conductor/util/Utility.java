@@ -1,8 +1,11 @@
 package net.vectormc.conductor.util;
 
 import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.util.List;
 
 public class Utility {
     public static Path getCWD() {
@@ -22,5 +25,10 @@ public class Utility {
         }
 
         return success;
+    }
+
+    public static List<String> getJVMArguments() {
+        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        return runtimeMXBean.getInputArguments();
     }
 }
