@@ -55,8 +55,6 @@ public class Conductor extends Boot {
             getInstance().shutdown(true);
         }
 
-        conf.getFileForLaunch();
-
         String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
 
         ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(), "-jar", program);
