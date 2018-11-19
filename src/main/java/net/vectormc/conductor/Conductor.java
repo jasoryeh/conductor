@@ -16,6 +16,8 @@ import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Conductor extends Boot {
     @Getter
@@ -57,7 +59,14 @@ public class Conductor extends Boot {
 
         String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
 
-        ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(), "-jar", program);
+        Logger.getLogger().debug("-> Process configuration");
+        Logger.getLogger().debug(String.join(" ", Utility.getJVMArguments()));
+        Logger.getLogger().debug(conf.getType().getEquivalent(),
+                String.join(" ", Utility.getJVMArguments()), "-jar", program);
+        Logger.getLogger().debug("-> Starting process...");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
+                String.join(" ", Utility.getJVMArguments()), "-jar", program);
         Process process;
         try {
             process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
