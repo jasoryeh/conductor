@@ -23,6 +23,7 @@ public class Conductor extends Boot {
     private static Conductor instance;
 
     Conductor() {
+        instance = this;
         this.onEnable();
     }
 

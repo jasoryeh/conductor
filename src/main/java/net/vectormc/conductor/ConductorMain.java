@@ -16,9 +16,7 @@ public class ConductorMain {
         Logger.getLogger().info("Temporary in - " + Downloader.getTempFolder().getAbsolutePath());
         Logger.getLogger().info("--- Info ---");
 
-        Conductor.setInstance(
-                new Conductor()
-        );
+        Conductor conductor = new Conductor();
     }
 
 }
