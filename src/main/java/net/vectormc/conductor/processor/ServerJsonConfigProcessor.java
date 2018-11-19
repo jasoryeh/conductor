@@ -266,6 +266,9 @@ public class ServerJsonConfigProcessor {
                             Files.copy(
                                     jenkinsDownloader.getDownloadedFile().toPath(),
                                     f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+
+                            //... move on
                         } catch(RetrievalException re) {
                             re.printStackTrace();
                             Conductor.getInstance().shutdown(true);
