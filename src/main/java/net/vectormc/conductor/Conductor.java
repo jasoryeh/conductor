@@ -63,8 +63,10 @@ public class Conductor extends Boot {
                 String.join(" ", Utility.getJVMArguments()), "-jar", program);
         Logger.getLogger().debug("-> Starting process...");
 
+        String parameters = obj.get("launchWithSameParams") != null ? obj.get("launchWithSameParams").getAsBoolean() ? String.join(" ", Utility.getJVMArguments()) : "" : "";
+
         ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
-                String.join(" ", Utility.getJVMArguments()), "-jar", program);
+                parameters, "-jar", program);
         Process process;
         try {
             process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)

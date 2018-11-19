@@ -4,6 +4,7 @@
   "launchOptions": "",
   "overwrite": true,
   "launch": "server.jar",
+  "launchWithSameParams": false,
   "tree" : {
     "server.jar": {
       "type": "file",

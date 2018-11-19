@@ -4,6 +4,7 @@
   "launchOptions": "", // extra launch params, optional
   "overwrite": true, // or false, implied if not present | tells to overwrite current setup if needed
   "launch": "filename.jar", // name of file to launch
+  "launchWithSameParams": false, // include paramaters of this jvm
   "tree" : { // file setup
     "example.example": { // example item in a tree
       "type": "file/folder", // is this a file or a folder | REQUIRED
