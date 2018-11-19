@@ -16,8 +16,6 @@ import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Conductor extends Boot {
     @Getter
@@ -105,8 +103,11 @@ public class Conductor extends Boot {
 
     public void onDisable() { }
 
-    public void shutdown(boolean err) {
-        this.onDisable();
+    public static void shutdown(boolean err) {
+        try {
+            getInstance().onDisable();
+        } catch(Exception e) {}
+
         System.exit(err ? 1 : 0);
         Logger.getLogger().info("bye.");
         Threads.sleep(10000);

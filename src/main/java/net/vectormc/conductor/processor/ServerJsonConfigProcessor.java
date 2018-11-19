@@ -199,7 +199,7 @@ public class ServerJsonConfigProcessor {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("content")) {
                             FileOutputStream fos = new FileOutputStream(f);
-                            fos.write(contents.getValue().getAsString().getBytes());
+                            fos.write(contents.getValue().getAsString().replaceAll("\\{NEWLINE}", System.lineSeparator()).getBytes());
                             fos.close();
                         }
                     }
