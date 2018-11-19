@@ -1,5 +1,6 @@
 package net.vectormc.conductor;
 
+import com.google.common.io.Files;
 import net.vectormc.conductor.config.Configuration;
 import net.vectormc.conductor.downloaders.Downloader;
 import net.vectormc.conductor.downloaders.JenkinsDownloader;
@@ -58,16 +59,25 @@ public class ConductorMain {
                 String username = configuration.getString("selfUpdateUsername");
                 String passwordOrToken = configuration.getString("selfUpdatePasswordOrToken");
 
-                JenkinsDownloader jd = new JenkinsDownloader(host, job, artifact, build, username, passwordOrToken, "conductor_latest", true, new Credentials());
+                JenkinsDownloader jd = new JenkinsDownloader(host, job, artifact, build, username, passwordOrToken, "conductor_latest.jar", true, new Credentials());
                 try {
                     jd.download();
 
                     Logger.getLogger().debug("-> Starting process...");
 
-                    String program = new File(Utility.getCWD().toString()).toURI().relativize(jd.getDownloadedFile().toURI()).getPath();
+                    File oldConudctor = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
+
+                    if(oldConudctor.exists()) {
+                        oldConudctor.delete();
+                    }
+                    Files.copy(jd.getDownloadedFile(), oldConudctor);
+
+                    String program = new File(Utility.getCWD().toString()).toURI().relativize(oldConudctor.toURI()).getPath();
+
+                    String extra = configuration.entryExists("bootUpdateWithSameParams") ? configuration.getString("bootUpdateWithSameParams").equalsIgnoreCase("true") ? String.join(" ", Utility.getJVMArguments()) : "" : "";
 
                     ProcessBuilder processBuilder = new ProcessBuilder("java", "-DconductorUpdated=yes",
-                            String.join(" ", Utility.getJVMArguments()), "-jar", program);
+                            extra , "-jar", program);
                     Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
                             .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                             .redirectInput(ProcessBuilder.Redirect.INHERIT)
