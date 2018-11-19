@@ -11,8 +11,11 @@ import java.io.File;
 public class ConductorMain {
 
     public static void main(String[] args) {
+        Logger.getLogger().debug(System.getProperty("conductorUpdated"));
         if(System.getProperty("conductorUpdated") == null || System.getProperty("conductorUpdated").equalsIgnoreCase("")) {
             attemptUpdate();
+        } else {
+            Logger.getLogger().info("Update complete.");
         }
 
         Logger.getLogger().info("--- Info ---");
@@ -36,12 +39,16 @@ public class ConductorMain {
         Configuration configuration = new Configuration("serverlauncher.properties", true);
         configuration.reload();
 
+        Logger.getLogger().debug("Checking if self update is enabled");
+
         boolean selfUpdate = configuration.entryExists("selfUpdate") && Boolean.valueOf(configuration.getString("selfUpdate"));
         if(selfUpdate) {
+            Logger.getLogger().debug("Checking if self update details are specified");
             boolean valuesExist = configuration.entryExists("selfUpdateJob") && configuration.entryExists("selfUpdateVersion")
                     && configuration.entryExists("selfUpdateArtifactName") && configuration.entryExists("selfUpdateHost")
                     && configuration.entryExists("selfUpdateUsername") && configuration.entryExists("selfUpdatePasswordOrToken");
             if(valuesExist) {
+                Logger.getLogger().debug("Updating...");
                 String job = configuration.getString("selfUpdateJob");
                 String artifact = configuration.getString("selfUpdateArtifactName");
 
