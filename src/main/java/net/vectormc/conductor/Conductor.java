@@ -64,6 +64,7 @@ public class Conductor extends Boot {
         Logger.getLogger().debug("-> Starting process...");
 
         String parameters = obj.get("launchWithSameParams") != null ? obj.get("launchWithSameParams").getAsBoolean() ? String.join(" ", Utility.getJVMArguments()) : "" : "";
+        parameters += (parameters.equalsIgnoreCase("") ? "" : " ") + "-DconductorUpdated=yes -DstartedWithConductor=yes";
 
         ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
                 parameters, "-jar", program);

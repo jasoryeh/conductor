@@ -64,6 +64,7 @@ public class ConductorMain {
                     jd.download();
 
                     Logger.getLogger().debug("-> Starting process...");
+                    Logger.getLogger().debug(Utility.getCWD() + File.separator + "conductor_latest.jar");
 
                     File oldConudctor = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
 
@@ -76,8 +77,12 @@ public class ConductorMain {
 
                     String extra = configuration.entryExists("bootUpdateWithSameParams") ? configuration.getString("bootUpdateWithSameParams").equalsIgnoreCase("true") ? String.join(" ", Utility.getJVMArguments()) : "" : "";
 
-                    ProcessBuilder processBuilder = new ProcessBuilder("java", "-DconductorUpdated=yes",
-                            extra , "-jar", program);
+                    extra += (extra.equalsIgnoreCase("") ? "" : " ") + "-DconductorUpdated=yes";
+
+                    Logger.getLogger().debug(extra, program);
+
+                    ProcessBuilder processBuilder = new ProcessBuilder("java",
+                            extra, "-jar", program);
                     Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
                             .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                             .redirectInput(ProcessBuilder.Redirect.INHERIT)
