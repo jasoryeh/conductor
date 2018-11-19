@@ -4,8 +4,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import net.vectormc.conductor.Conductor;
+import net.vectormc.conductor.config.Configuration;
 import net.vectormc.conductor.config.ServerConfig;
 import net.vectormc.conductor.debug.DebugException;
+import net.vectormc.conductor.downloaders.JenkinsDownloader;
 import net.vectormc.conductor.downloaders.URLDownloader;
 import net.vectormc.conductor.downloaders.authentication.Credentials;
 import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
@@ -229,8 +231,49 @@ public class ServerJsonConfigProcessor {
                         }
                         break;
                     case JENKINS:
-                        // TODO: Jenkins WIP
-                        throw new UnsupportedOperationException();
+                        try {
+                            Configuration config = Conductor.getInstance().getConfig();
+                            boolean endNoAuth = !config.entryExists("jenkinsHost")
+                                    || !config.entryExists("jenkinsUsername")
+                                    || !config.entryExists("jenkinsPasswordOrToken");
+                            if(!retrieval.get("auth").getAsBoolean() && endNoAuth) {
+                                Logger.getLogger().error("Jenkins Authentication not present, not continuing.");
+                                Conductor.getInstance().shutdown(true);
+                            }
+
+                            JsonObject jenkinsAuth = retrieval.get("jenkinsAuth").getAsJsonObject();
+
+                            boolean useSpecifiedAuth = retrieval.get("auth").getAsBoolean();
+
+                            boolean endNoInfo = (jenkinsAuth.get("job") == null) || (jenkinsAuth.get("artifact") == null) || (jenkinsAuth.get("number") == null);
+                            if(endNoInfo) {
+                                Logger.getLogger().error("Jenkins artifact information not present, not continuing.");
+                                Conductor.getInstance().shutdown(true);
+                            }
+
+                            String job = jenkinsAuth.get("job").getAsString();
+                            String artifact = jenkinsAuth.get("artifact").getAsString();
+                            int number = jenkinsAuth.get("number").getAsInt();
+
+                            String host = useSpecifiedAuth ? jenkinsAuth.get("host").getAsString() : config.getString("jenkinsHost");
+                            String username = useSpecifiedAuth ? (jenkinsAuth.get("username") == null ? "" : jenkinsAuth.get("username").getAsString()) : config.getString("jenkinsUsername");
+                            String passwordOrToken = useSpecifiedAuth ? (jenkinsAuth.get("passwordOrToken") == null ? "" : jenkinsAuth.get("passwordOrToken").getAsString()) : config.getString("jenkinsPasswordOrToken");
+
+
+                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(host, job, artifact, number, username, passwordOrToken, fileName, true, new Credentials());
+                            jenkinsDownloader.download();
+
+                            Files.copy(
+                                    jenkinsDownloader.getDownloadedFile().toPath(),
+                                    f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        } catch(RetrievalException re) {
+                            re.printStackTrace();
+                            Conductor.getInstance().shutdown(true);
+                        } catch(IOException io) {
+                            io.printStackTrace();
+                            Conductor.getInstance().shutdown(true);
+                        }
+                        break;
                     case SPECIFIED:
                         // Specified not supposed to land here
                         throw new UnsupportedOperationException();

@@ -14,6 +14,14 @@
         "auth": true, // or false, implied if not present
         "url": "https://example.com/host", // host of downloads ex jenkins host or url to download
         "requestType": "GET|POST|UNKNOWN", // if url, how to send request
+        "jenkinsAuth": { // jenkins authentication, specify artifact, build('LATEST' or number), if using auth, mark auth to true even if auth-less leave username and password as "" or omit
+          "job": "ArtifactJob", // necessary to specify which job to look at
+          "artifact": "Artifact.jar", // necessary to determine which artifact to download
+          "number": -1, // -1 for latest successful build, other numbers for set build
+          "host": "https://host.com/idk", // optional, uses default if not present
+          "username": "u", // optional, udinp
+          "passwordOrToken": "p" // optional, ^
+        },
         "authDetails": { // Optional, ifnored if auth not present, or false
           // Key-value pairs for headers ex. "Authorization": "token",
         }

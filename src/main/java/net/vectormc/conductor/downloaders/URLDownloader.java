@@ -3,6 +3,7 @@ package net.vectormc.conductor.downloaders;
 import lombok.Getter;
 import net.vectormc.conductor.downloaders.authentication.Credentials;
 import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
+import net.vectormc.conductor.log.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,14 +29,17 @@ public class URLDownloader extends Downloader {
         try {
             URL u = new URL(this.url);
             HttpURLConnection huc = (HttpURLConnection) u.openConnection();
-            credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
+            this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
 
             ReadableByteChannel i = Channels.newChannel(huc.getInputStream());
             File out = new File(getTempFolder() + File.separator + this.fileName);
+            if (out.exists()) {
+                Logger.getLogger().info("[Download] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
+            }
             FileOutputStream o = new FileOutputStream(out);
             o.getChannel().transferFrom(i, 0, Long.MAX_VALUE);
 
-            downloadedFile = out;
+            this.downloadedFile = out;
 
             o.close();
             i.close();
