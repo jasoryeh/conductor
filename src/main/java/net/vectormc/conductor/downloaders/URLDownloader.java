@@ -35,6 +35,7 @@ public class URLDownloader extends Downloader {
             File out = new File(getTempFolder() + File.separator + this.fileName);
             if (out.exists()) {
                 Logger.getLogger().info("[Download] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
+                out.delete();
             }
             FileOutputStream o = new FileOutputStream(out);
             o.getChannel().transferFrom(i, 0, Long.MAX_VALUE);

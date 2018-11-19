@@ -65,6 +65,7 @@ public class JenkinsDownloader extends Downloader {
             if (number == -1) {
                 // Latest
                 for (Artifact artifact : job.details().getLastSuccessfulBuild().details().getArtifacts()) {
+                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact);
                     if (artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
                         acceptedArtifact = artifact;
                         acceptedBuild = job.details().getLastSuccessfulBuild();
@@ -74,6 +75,7 @@ public class JenkinsDownloader extends Downloader {
             } else {
                 // Specified job run number
                 for (Artifact artifact : job.details().getBuildByNumber(this.number).details().getArtifacts()) {
+                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact);
                     if (artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
                         acceptedArtifact = artifact;
                         acceptedBuild = job.details().getBuildByNumber(this.number);
@@ -82,7 +84,7 @@ public class JenkinsDownloader extends Downloader {
                 }
             }
             if (acceptedArtifact == null | acceptedBuild == null) {
-                Logger.getLogger().info("Unable to retrieve artifact(s)/build(s) | " + this.job + " | " + this.artifactName + " #" + this.number);
+                Logger.getLogger().info("[Jenkins] Unable to retrieve artifact(s)/build(s) | " + this.job + " | " + this.artifactName + " #" + this.number);
                 Conductor.getInstance().shutdown(true);
             }
 
@@ -93,6 +95,7 @@ public class JenkinsDownloader extends Downloader {
             File out = new File(getTempFolder() + File.separator + this.fileName);
             if (out.exists()) {
                 Logger.getLogger().info("[Jenkins] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
+                out.delete();
             }
 
             ReadableByteChannel readableByteChannel = Channels.newChannel(inputStream);

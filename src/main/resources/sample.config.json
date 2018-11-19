@@ -35,6 +35,22 @@
           }
         }
       }
+    },
+    "test.jar": {
+      "type": "file",
+      "retrieval": {
+        "retrieve": true,
+        "auth": true,
+        "method": "jenkins",
+        "jenkinsAuth": {
+          "job": "test",
+          "artifact": "test-1.0-SNAPSHOT-jar-with-dependencies.jar",
+          "number": -1,
+          "host": "https://ci.example.com",
+          "username": "input",
+          "passwordOrToken": "asd98fuasdifs09sidf9asuf09"
+        }
+      }
     }
   }
 }

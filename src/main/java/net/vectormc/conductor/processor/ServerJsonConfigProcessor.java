@@ -79,10 +79,19 @@ public class ServerJsonConfigProcessor {
         File f = new File(path);
 
         if(f.exists() && conf.isOverwrite()) {
-            if(!f.delete()) {
-                Logger.getLogger().error("[OVERWRITE] UNABLE TO DELETE " + f.getAbsolutePath());
+            // Try deleting like a folder
+            if(f.isDirectory()) {
+                if(!Utility.recursiveDelete(f)) {
+                    Logger.getLogger().error("[OVERWRITE] UNABLE TO DELETE DIRECTORY " + f.getAbsolutePath());
+                } else {
+                    Logger.getLogger().info("[OVERWRITE] OVERWRITE DIRECTORY: " + f.getAbsolutePath() + " (Deleted)");
+                }
             } else {
-                Logger.getLogger().info("[OVERWRITE] OVERWRITE: " + f.getAbsolutePath() + " (Deleted)");
+                if(!f.delete()) {
+                    Logger.getLogger().error("[OVERWRITE] UNABLE TO DELETE " + f.getAbsolutePath());
+                } else {
+                    Logger.getLogger().info("[OVERWRITE] OVERWRITE: " + f.getAbsolutePath() + " (Deleted)");
+                }
             }
         }
 
@@ -202,11 +211,13 @@ public class ServerJsonConfigProcessor {
                 RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString().toUpperCase());
 
                 Credentials credentials = new Credentials();
-                Credentials.CredentialType ct = Credentials.CredentialType.valueOf(retrieval.get("requestType").getAsString());
+                Credentials.CredentialType ct = Credentials.CredentialType.valueOf((retrieval.get("requestType") == null ? "DEFAULT" : retrieval.get("requestType").getAsString()));
 
-                for (Map.Entry<String, JsonElement> authDetails : retrieval.get("authDetails").getAsJsonObject().entrySet()) {
-                    // (should) do nothing if auth details aren't present
-                    credentials.addToRequiredCredentials(ct, authDetails.getKey(), authDetails.getValue().getAsString());
+                if(retrieval.get("authDetails") != null) {
+                    for (Map.Entry<String, JsonElement> authDetails : retrieval.get("authDetails").getAsJsonObject().entrySet()) {
+                        // (should) do nothing if auth details aren't present
+                        credentials.addToRequiredCredentials(ct, authDetails.getKey(), authDetails.getValue().getAsString());
+                    }
                 }
 
                 switch(type) {

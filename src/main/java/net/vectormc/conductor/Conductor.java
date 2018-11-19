@@ -26,8 +26,15 @@ public class Conductor extends Boot {
         this.onEnable();
     }
 
-    @Getter
     private Configuration config;
+
+    public Configuration getConfig() {
+        if(this.config == null) {
+            config = new Configuration("serverlauncher.properties", true);
+        }
+        config.reload();
+        return config;
+    }
 
     public void onEnable() {
         this.config = new Configuration("serverlauncher.properties", true);
