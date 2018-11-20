@@ -2,12 +2,13 @@
   "templateName": "examplename", // name for this setup, current server archived if old config's name was different
   "type": "java", // java only currently
   "launchOptions": "", // extra launch params, optional
-  "overwrite": true, // or false, implied if not present | tells to overwrite current setup if needed
+  "overwrite": true, // or false, implied if not present | tells to overwrite current setup if needed // overridden by individual overwrite rules
   "launch": "filename.jar", // name of file to launch
   "launchWithSameParams": false, // include paramaters of this jvm
   "tree" : { // file setup
     "example.example": { // example item in a tree
       "type": "file/folder", // is this a file or a folder | REQUIRED
+      "overwrite": false, // default use conf overwrite setting ^, true says overwrite
       "retrieval": { // details of retrieval
         "retrieve": true, // or false, implied if not present
         "method": "url/jenkins/specified", // how to retrieve

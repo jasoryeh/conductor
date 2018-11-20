@@ -78,7 +78,8 @@ public class ServerJsonConfigProcessor {
                 (parents.equalsIgnoreCase("") ? "" : File.separator + parents + File.separator) + fileName;
         File f = new File(path);
 
-        if(f.exists() && conf.isOverwrite()) {
+        boolean fileOverwrite = obj.get("overwrite") == null ? conf.isOverwrite() : obj.get("overwrite").getAsBoolean();
+        if(f.exists() && (conf.isOverwrite() && fileOverwrite)) {
             // Try deleting like a folder
             if(f.isDirectory()) {
                 if(!Utility.recursiveDelete(f)) {
