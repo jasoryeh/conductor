@@ -79,6 +79,10 @@ public class ServerJsonConfigProcessor {
         File f = new File(path);
 
         boolean fileOverwrite = obj.get("overwrite") == null ? conf.isOverwrite() : obj.get("overwrite").getAsBoolean();
+        if(f.exists() && !fileOverwrite) {
+            Logger.getLogger().info("Skipping " + f.getAbsolutePath() + " told to not re-download.");
+            return true;
+        }
         if(f.exists() && (conf.isOverwrite() && fileOverwrite)) {
             // Try deleting like a folder
             if(f.isDirectory()) {
