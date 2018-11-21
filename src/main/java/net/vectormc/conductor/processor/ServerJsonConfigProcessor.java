@@ -119,7 +119,7 @@ public class ServerJsonConfigProcessor {
                 }
                 return true;
             } else {
-                RetrieveType type = RetrieveType.valueOf(obj.get("method").getAsString());
+                RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString());
 
                 Credentials credentials = new Credentials();
                 Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType").getAsString());
