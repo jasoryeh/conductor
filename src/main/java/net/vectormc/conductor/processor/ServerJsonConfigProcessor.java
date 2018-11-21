@@ -105,15 +105,20 @@ public class ServerJsonConfigProcessor {
 
         if(obj.get("type").getAsString().equalsIgnoreCase("folder")) {
             if (!f.mkdirs()) {
+                Logger.getLogger().error("Unable to create directory " + f.getAbsolutePath());
                 return false;
             }
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 if(obj.get("contents") != null) {
+                    Logger.getLogger().debug("Scanning content configuration for " + f.getAbsolutePath());
+                    obj.get("contents").getAsJsonObject().entrySet().forEach(e -> Logger.getLogger().debug(e.getKey() + "|" + e.getValue()));
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
+                        contents.getValue().getAsJsonObject().entrySet().forEach(e -> Logger.getLogger().debug(e.getKey() + "|" + e.getValue()));
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("tree")) {
+                            Logger.getLogger().debug("Processing configuration...");
                             processTree(contents.getValue().getAsJsonObject(), conf, parents + File.separator + fileName, recursive);
                         }
                     }
