@@ -128,9 +128,11 @@ public class ServerJsonConfigProcessor {
                 Credentials credentials = new Credentials();
                 Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType") == null ? "DEFAULT" : obj.get("requestType").getAsString().toUpperCase());
 
-                for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
-                    // (should) do nothing if auth details aren't present
-                    credentials.addToRequiredCredentials(ct, authDetails.getKey(), authDetails.getValue().getAsString());
+                if(obj.get("authDetails") != null) {
+                    for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
+                        // (should) do nothing if auth details aren't present
+                        credentials.addToRequiredCredentials(ct, authDetails.getKey(), authDetails.getValue().getAsString());
+                    }
                 }
 
                 switch(type) {
