@@ -77,6 +77,7 @@ public class ServerJsonConfigProcessor {
         String path = Utility.getCWD() + File.separator +
                 (parents.equalsIgnoreCase("") ? "" : File.separator + parents + File.separator) + fileName;
         File f = new File(path);
+        Logger.getLogger().debug(path);
 
         boolean fileOverwrite = obj.get("overwrite") == null ? conf.isOverwrite() : obj.get("overwrite").getAsBoolean();
         if(f.exists() && !fileOverwrite) {
@@ -119,7 +120,7 @@ public class ServerJsonConfigProcessor {
                 }
                 return true;
             } else {
-                RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString());
+                RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString().toUpperCase());
 
                 Credentials credentials = new Credentials();
                 Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType").getAsString());
