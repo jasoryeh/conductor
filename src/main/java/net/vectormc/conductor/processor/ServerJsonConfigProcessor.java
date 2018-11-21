@@ -104,9 +104,9 @@ public class ServerJsonConfigProcessor {
         Logger.getLogger().info("[WRITE] Create " + f.getAbsolutePath());
 
         if(obj.get("type").getAsString().equalsIgnoreCase("folder")) {
-            if (!f.mkdirs()) {
+            if (!f.mkdir()) {
                 Logger.getLogger().error("Unable to create directory " + f.getAbsolutePath());
-                return false;
+                Logger.getLogger().error("Trying to continue anyways");
             }
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
