@@ -126,7 +126,7 @@ public class ServerJsonConfigProcessor {
                 RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString().toUpperCase());
 
                 Credentials credentials = new Credentials();
-                Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType").getAsString());
+                Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType") == null ? "DEFAULT" : obj.get("requestType").getAsString().toUpperCase());
 
                 for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
                     // (should) do nothing if auth details aren't present
