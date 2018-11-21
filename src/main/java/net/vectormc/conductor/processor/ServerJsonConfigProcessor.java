@@ -113,9 +113,7 @@ public class ServerJsonConfigProcessor {
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 if(obj.get("contents") != null) {
                     Logger.getLogger().debug("Scanning content configuration for " + f.getAbsolutePath());
-                    obj.get("contents").getAsJsonObject().entrySet().forEach(e -> Logger.getLogger().debug(e.getKey() + "|" + e.getValue()));
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
-                        contents.getValue().getAsJsonObject().entrySet().forEach(e -> Logger.getLogger().debug(e.getKey() + "|" + e.getValue()));
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("tree")) {
                             Logger.getLogger().debug("Processing configuration...");
