@@ -138,7 +138,7 @@ public class ServerJsonConfigProcessor {
                 switch(type) {
                     case URL:
                         try {
-                            URLDownloader ud = new URLDownloader(obj.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
+                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
                             ud.download();
                             // Unzip
                             if (obj.get("unzipRequired").getAsBoolean()) {

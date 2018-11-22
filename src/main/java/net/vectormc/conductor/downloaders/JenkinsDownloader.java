@@ -75,7 +75,7 @@ public class JenkinsDownloader extends Downloader {
             } else {
                 // Specified job run number
                 for (Artifact artifact : job.details().getBuildByNumber(this.number).details().getArtifacts()) {
-                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact);
+                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
                     if (artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
                         acceptedArtifact = artifact;
                         acceptedBuild = job.details().getBuildByNumber(this.number);
