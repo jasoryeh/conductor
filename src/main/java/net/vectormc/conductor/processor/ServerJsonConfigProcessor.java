@@ -3,6 +3,8 @@ package net.vectormc.conductor.processor;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
+import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
 import net.vectormc.conductor.Conductor;
 import net.vectormc.conductor.config.Configuration;
 import net.vectormc.conductor.config.ServerConfig;
@@ -18,8 +20,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 public class ServerJsonConfigProcessor {
     public static ServerConfig process(final JsonObject jsonObject) {
@@ -142,35 +142,8 @@ public class ServerJsonConfigProcessor {
                             ud.download();
                             // Unzip
                             if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
-                                FileInputStream fis = new FileInputStream(ud.getDownloadedFile().getAbsolutePath());
-
-                                ZipInputStream zis = new ZipInputStream(fis);
-                                ZipEntry ze = zis.getNextEntry();
-
-                                while(ze != null) {
-                                    File nf = new File(f.getAbsolutePath() + File.separator + ze.getName());
-                                    nf.getParentFile().mkdirs();
-
-                                    Logger.getLogger().info("De-zipping to " + nf.getAbsolutePath());
-
-
-                                    FileOutputStream fos = new FileOutputStream(nf);
-                                    int len;
-                                    byte[] buffer = new byte[4096];
-                                    while((len = zis.read()) > 0) {
-                                        fos.write(buffer, 0, len);
-                                    }
-
-                                    fos.close();
-
-                                    zis.closeEntry();
-                                    ze = zis.getNextEntry();
-                                }
-
-                                zis.closeEntry();
-                                zis.close();
-                                fis.close();
-
+                                ZipFile zipFile = new ZipFile(ud.getDownloadedFile());
+                                zipFile.extractAll(f.getAbsolutePath());
                             } else {
                                 Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
@@ -185,6 +158,10 @@ public class ServerJsonConfigProcessor {
                             Conductor.getInstance().shutdown(true);
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
+                            Conductor.getInstance().shutdown(true);
+                        } catch(ZipException ze) {
+                            Logger.getLogger().error("Unable to process the zip file.");
+                            ze.printStackTrace();
                             Conductor.getInstance().shutdown(true);
                         }
                         break;
