@@ -141,7 +141,7 @@ public class ServerJsonConfigProcessor {
                             URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
                             ud.download();
                             // Unzip
-                            if (obj.get("unzipRequired").getAsBoolean()) {
+                            if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
                                 FileInputStream fis = new FileInputStream(ud.getDownloadedFile().getAbsolutePath());
 
                                 ZipInputStream zis = new ZipInputStream(fis);
