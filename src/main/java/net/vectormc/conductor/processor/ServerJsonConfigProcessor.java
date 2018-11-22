@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.UnzipParameters;
 import net.vectormc.conductor.Conductor;
 import net.vectormc.conductor.config.Configuration;
 import net.vectormc.conductor.config.ServerConfig;
@@ -142,9 +143,12 @@ public class ServerJsonConfigProcessor {
                             ud.download();
                             // Unzip
                             if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
+                                Logger.getLogger().info("Unzipping to" + f.getAbsolutePath());
                                 ZipFile zipFile = new ZipFile(ud.getDownloadedFile());
+                                f.mkdirs();
                                 zipFile.extractAll(f.getAbsolutePath());
                             } else {
+                                Logger.getLogger().info("Copying files to " + f.toPath());
                                 Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
                             // Finish unzip
