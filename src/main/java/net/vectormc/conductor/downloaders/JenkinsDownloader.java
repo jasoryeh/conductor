@@ -65,7 +65,7 @@ public class JenkinsDownloader extends Downloader {
             if (number == -1) {
                 // Latest
                 for (Artifact artifact : job.details().getLastSuccessfulBuild().details().getArtifacts()) {
-                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact);
+                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
                     if (artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
                         acceptedArtifact = artifact;
                         acceptedBuild = job.details().getLastSuccessfulBuild();
