@@ -13,7 +13,6 @@ import net.vectormc.conductor.downloaders.authentication.Credentials;
 import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
 import net.vectormc.conductor.log.Logger;
 import net.vectormc.conductor.util.Utility;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.*;
@@ -141,12 +140,9 @@ public class ServerJsonConfigProcessor {
                             URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
                             ud.download();
                             // Unzip
-                            /*if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
+                            if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
                                 Logger.getLogger().info("Unzipping to" + f.getAbsolutePath());
-                                //ZipFile zipFile = new ZipFile(ud.getDownloadedFile());
                                 f.mkdirs();
-                                //zipFile.extractAll(f.getAbsolutePath());
-                                //zipFile = null;
                                 ZipUtil.unpack(ud.getDownloadedFile(), f);
                                 System.gc();
                             } else {
@@ -154,24 +150,7 @@ public class ServerJsonConfigProcessor {
                                 Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
                             ud = null;
-                            System.gc();*/
-
-                            if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
-                                try(InputStream fin = Files.newInputStream(ud.getDownloadedFile().toPath())) {
-                                    OutputStream os = Files.newOutputStream(f.toPath());
-                                    GzipCompressorInputStream in = new GzipCompressorInputStream(new BufferedInputStream(fin));
-
-                                    // Read and write byte by byte
-                                    final byte[] buffer = new byte[4096];
-                                    int n = 0;
-                                    while (-1 != (n = in.read(buffer))) {
-                                        os.write(buffer, 0, n);
-                                    }
-                                }
-                            } else {
-                                Logger.getLogger().info("Copying files to " + f.toPath());
-                                Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                            }
+                            System.gc();
                             // Finish unzip
 
                             // ... move on
