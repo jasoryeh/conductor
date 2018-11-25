@@ -44,6 +44,9 @@ public class URLDownloader extends Downloader {
 
             o.close();
             i.close();
+
+            i = null; o = null;
+            System.gc();
         } catch(Exception e) {
             throw new RetrievalException(e);
         }

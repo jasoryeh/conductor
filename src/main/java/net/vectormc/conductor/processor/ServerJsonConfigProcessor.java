@@ -147,10 +147,14 @@ public class ServerJsonConfigProcessor {
                                 ZipFile zipFile = new ZipFile(ud.getDownloadedFile());
                                 f.mkdirs();
                                 zipFile.extractAll(f.getAbsolutePath());
+                                zipFile = null;
+                                System.gc();
                             } else {
                                 Logger.getLogger().info("Copying files to " + f.toPath());
                                 Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
+                            ud = null;
+                            System.gc();
                             // Finish unzip
 
                             // ... move on
