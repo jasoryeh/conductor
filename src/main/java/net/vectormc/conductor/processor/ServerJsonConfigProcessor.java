@@ -16,6 +16,7 @@ import net.vectormc.conductor.downloaders.authentication.Credentials;
 import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
 import net.vectormc.conductor.log.Logger;
 import net.vectormc.conductor.util.Utility;
+import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -144,10 +145,11 @@ public class ServerJsonConfigProcessor {
                             // Unzip
                             if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
                                 Logger.getLogger().info("Unzipping to" + f.getAbsolutePath());
-                                ZipFile zipFile = new ZipFile(ud.getDownloadedFile());
+                                //ZipFile zipFile = new ZipFile(ud.getDownloadedFile());
                                 f.mkdirs();
-                                zipFile.extractAll(f.getAbsolutePath());
-                                zipFile = null;
+                                //zipFile.extractAll(f.getAbsolutePath());
+                                //zipFile = null;
+                                ZipUtil.unpack(ud.getDownloadedFile(), f);
                                 System.gc();
                             } else {
                                 Logger.getLogger().info("Copying files to " + f.toPath());
@@ -167,11 +169,11 @@ public class ServerJsonConfigProcessor {
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
                             Conductor.getInstance().shutdown(true);
-                        } catch(ZipException ze) {
+                        }/* catch(ZipException ze) {
                             Logger.getLogger().error("Unable to process the zip file.");
                             ze.printStackTrace();
                             Conductor.getInstance().shutdown(true);
-                        }
+                        }*/
                         break;
                     case JENKINS:
                         // TODO: Jenkins WIP
