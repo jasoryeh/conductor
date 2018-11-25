@@ -4,13 +4,12 @@ import lombok.Getter;
 import net.vectormc.conductor.downloaders.authentication.Credentials;
 import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
 import net.vectormc.conductor.log.Logger;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 
 public class URLDownloader extends Downloader {
     @Getter
@@ -31,22 +30,24 @@ public class URLDownloader extends Downloader {
             HttpURLConnection huc = (HttpURLConnection) u.openConnection();
             this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
 
-            ReadableByteChannel i = Channels.newChannel(huc.getInputStream());
             File out = new File(getTempFolder() + File.separator + this.fileName);
             if (out.exists()) {
                 Logger.getLogger().info("[Download] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
                 out.delete();
             }
-            FileOutputStream o = new FileOutputStream(out);
-            o.getChannel().transferFrom(i, 0, Long.MAX_VALUE);
+            Logger.getLogger().info("[Download] Downloading file... " + out.getAbsolutePath() + " from " + url);
+
+            //FileUtils.copyURLToFile(u, out);
+
+            InputStream inputStream = huc.getInputStream();
+            FileUtils.copyInputStreamToFile(inputStream, out);
+            inputStream.close();
+
+            inputStream = null;
+            System.gc();
 
             this.downloadedFile = out;
 
-            o.close();
-            i.close();
-
-            i = null; o = null;
-            System.gc();
         } catch(Exception e) {
             throw new RetrievalException(e);
         }
