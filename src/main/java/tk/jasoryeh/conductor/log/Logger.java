@@ -50,10 +50,6 @@ public class Logger {
     }
 
 
-    /*
-     * Methods to help the logger
-     */
-    
     /**
      * Returns a full date and time zone string for use in the log message
      * @return String with brackets to be used in the message
