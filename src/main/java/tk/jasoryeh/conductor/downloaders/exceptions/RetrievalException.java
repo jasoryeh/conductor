@@ -1,4 +1,4 @@
-package net.vectormc.conductor.downloaders.exceptions;
+package tk.jasoryeh.conductor.downloaders.exceptions;
 
 /**
  * Generic file retrieval exception

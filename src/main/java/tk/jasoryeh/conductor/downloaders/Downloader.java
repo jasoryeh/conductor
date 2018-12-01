@@ -1,10 +1,10 @@
-package net.vectormc.conductor.downloaders;
+package tk.jasoryeh.conductor.downloaders;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.vectormc.conductor.downloaders.authentication.Credentials;
-import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
-import net.vectormc.conductor.util.Utility;
+import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
+import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
+import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
 

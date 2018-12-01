@@ -1,12 +1,12 @@
-package net.vectormc.conductor;
+package tk.jasoryeh.conductor;
 
 import com.google.common.io.Files;
-import net.vectormc.conductor.config.Configuration;
-import net.vectormc.conductor.downloaders.Downloader;
-import net.vectormc.conductor.downloaders.JenkinsDownloader;
-import net.vectormc.conductor.downloaders.authentication.Credentials;
-import net.vectormc.conductor.log.Logger;
-import net.vectormc.conductor.util.Utility;
+import tk.jasoryeh.conductor.config.Configuration;
+import tk.jasoryeh.conductor.downloaders.Downloader;
+import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
+import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
+import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
 public class ConductorMain {

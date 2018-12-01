@@ -1,9 +1,9 @@
-package net.vectormc.conductor.config;
+package tk.jasoryeh.conductor.config;
 
 import lombok.Getter;
-import net.vectormc.conductor.Conductor;
-import net.vectormc.conductor.log.Logger;
-import net.vectormc.conductor.util.Utility;
+import tk.jasoryeh.conductor.Conductor;
+import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.util.Utility;
 import org.apache.commons.io.FileUtils;
 
 import java.io.*;

@@ -1,4 +1,4 @@
-package net.vectormc.conductor.util;
+package tk.jasoryeh.conductor.util;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;

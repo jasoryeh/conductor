@@ -1,14 +1,14 @@
-package net.vectormc.conductor.downloaders;
+package tk.jasoryeh.conductor.downloaders;
 
 import com.offbytwo.jenkins.JenkinsServer;
 import com.offbytwo.jenkins.model.Artifact;
 import com.offbytwo.jenkins.model.Build;
 import com.offbytwo.jenkins.model.Job;
 import lombok.Getter;
-import net.vectormc.conductor.Conductor;
-import net.vectormc.conductor.downloaders.authentication.Credentials;
-import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
-import net.vectormc.conductor.log.Logger;
+import tk.jasoryeh.conductor.Conductor;
+import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
+import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
+import tk.jasoryeh.conductor.log.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;

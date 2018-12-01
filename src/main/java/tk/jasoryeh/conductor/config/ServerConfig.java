@@ -1,9 +1,9 @@
-package net.vectormc.conductor.config;
+package tk.jasoryeh.conductor.config;
 
 import com.google.gson.JsonObject;
 import lombok.Getter;
-import net.vectormc.conductor.processor.ServerJsonConfigProcessor;
-import net.vectormc.conductor.util.Utility;
+import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
+import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
 

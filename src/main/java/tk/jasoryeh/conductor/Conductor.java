@@ -1,15 +1,15 @@
-package net.vectormc.conductor;
+package tk.jasoryeh.conductor;
 
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
-import net.vectormc.conductor.config.Configuration;
-import net.vectormc.conductor.config.ServerConfig;
-import net.vectormc.conductor.log.Logger;
-import net.vectormc.conductor.processor.LauncherPropertiesProcessor;
-import net.vectormc.conductor.processor.ServerJsonConfigProcessor;
-import net.vectormc.conductor.scheduler.Threads;
-import net.vectormc.conductor.util.Utility;
+import tk.jasoryeh.conductor.config.Configuration;
+import tk.jasoryeh.conductor.config.ServerConfig;
+import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.processor.LauncherPropertiesProcessor;
+import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
+import tk.jasoryeh.conductor.scheduler.Threads;
+import tk.jasoryeh.conductor.util.Utility;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 import org.joda.time.format.PeriodFormatter;

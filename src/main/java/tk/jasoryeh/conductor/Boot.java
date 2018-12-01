@@ -1,4 +1,4 @@
-package net.vectormc.conductor;
+package tk.jasoryeh.conductor;
 
 public abstract class Boot {
     Boot() { }

@@ -1,4 +1,4 @@
-package net.vectormc.conductor.downloaders.authentication;
+package tk.jasoryeh.conductor.downloaders.authentication;
 
 import java.util.HashMap;
 import java.util.Map;

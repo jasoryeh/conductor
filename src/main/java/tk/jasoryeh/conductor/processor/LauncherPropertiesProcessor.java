@@ -1,15 +1,15 @@
-package net.vectormc.conductor.processor;
+package tk.jasoryeh.conductor.processor;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.vectormc.conductor.Conductor;
-import net.vectormc.conductor.ConductorMain;
-import net.vectormc.conductor.config.Configuration;
-import net.vectormc.conductor.downloaders.Downloader;
-import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
-import net.vectormc.conductor.log.Logger;
-import net.vectormc.conductor.scheduler.Threads;
-import net.vectormc.conductor.util.Utility;
+import tk.jasoryeh.conductor.Conductor;
+import tk.jasoryeh.conductor.ConductorMain;
+import tk.jasoryeh.conductor.config.Configuration;
+import tk.jasoryeh.conductor.downloaders.Downloader;
+import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
+import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.scheduler.Threads;
+import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.*;
 import java.net.URL;

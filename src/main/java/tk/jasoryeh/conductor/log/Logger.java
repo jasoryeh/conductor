@@ -1,4 +1,4 @@
-package net.vectormc.conductor.log;
+package tk.jasoryeh.conductor.log;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;

@@ -1,18 +1,18 @@
-package net.vectormc.conductor.processor;
+package tk.jasoryeh.conductor.processor;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
-import net.vectormc.conductor.Conductor;
-import net.vectormc.conductor.config.Configuration;
-import net.vectormc.conductor.config.ServerConfig;
-import net.vectormc.conductor.debug.DebugException;
-import net.vectormc.conductor.downloaders.JenkinsDownloader;
-import net.vectormc.conductor.downloaders.URLDownloader;
-import net.vectormc.conductor.downloaders.authentication.Credentials;
-import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
-import net.vectormc.conductor.log.Logger;
-import net.vectormc.conductor.util.Utility;
+import tk.jasoryeh.conductor.Conductor;
+import tk.jasoryeh.conductor.config.Configuration;
+import tk.jasoryeh.conductor.config.ServerConfig;
+import tk.jasoryeh.conductor.debug.DebugException;
+import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
+import tk.jasoryeh.conductor.downloaders.URLDownloader;
+import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
+import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
+import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.util.Utility;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.*;

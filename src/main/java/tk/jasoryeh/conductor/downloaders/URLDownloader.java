@@ -1,9 +1,9 @@
-package net.vectormc.conductor.downloaders;
+package tk.jasoryeh.conductor.downloaders;
 
 import lombok.Getter;
-import net.vectormc.conductor.downloaders.authentication.Credentials;
-import net.vectormc.conductor.downloaders.exceptions.RetrievalException;
-import net.vectormc.conductor.log.Logger;
+import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
+import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
+import tk.jasoryeh.conductor.log.Logger;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;

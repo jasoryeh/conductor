@@ -1,4 +1,4 @@
-package net.vectormc.conductor.debug;
+package tk.jasoryeh.conductor.debug;
 
 public class DebugException extends Exception {
 }
