@@ -31,20 +31,14 @@ public class URLDownloader extends Downloader {
             this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
 
             File out = new File(getTempFolder() + File.separator + this.fileName);
-            if (out.exists()) {
-                Logger.getLogger().info("[Download] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
-                out.delete();
-            }
-            Logger.getLogger().info("[Download] Downloading file... " + out.getAbsolutePath() + " from " + url);
 
-            //FileUtils.copyURLToFile(u, out);
+            if (out.exists()) Logger.getLogger().debug("[Download] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
+
+            Logger.getLogger().info("[Download] Downloading file... " + out.getAbsolutePath() + " from " + url);
 
             InputStream inputStream = huc.getInputStream();
             FileUtils.copyInputStreamToFile(inputStream, out);
             inputStream.close();
-
-            inputStream = null;
-            System.gc();
 
             this.downloadedFile = out;
 

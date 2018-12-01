@@ -19,11 +19,7 @@ import java.util.UUID;
  * and launcher.properties would be another.
  */
 public class Configuration {
-    private static List<Configuration> instances;
-
-    static {
-        instances = new ArrayList<>();
-    }
+    private static List<Configuration> instances = new ArrayList<>();
 
     @Getter
     private final String file;
@@ -43,7 +39,8 @@ public class Configuration {
         this.file = fileName;
         this.allowCreation = allowCreation;
         instances.add(this);
-        Logger.getLogger().info("Loading configuration \"" + fileName + "\"");
+
+        Logger.getLogger().debug("Loading configuration \"" + fileName + "\"");
         try {
             this.load();
             this.readFileToProperties();
@@ -51,7 +48,7 @@ public class Configuration {
             Logger.getLogger().error("Unexpected error: IO. Exiting.");
             e.printStackTrace();
 
-            Conductor.getInstance().shutdown(true);
+            Conductor.shutdown(true);
         } catch(Exception e) {
             Logger.getLogger().error("Unexpected error: UNKNOWN. Exiting.");
             e.printStackTrace();

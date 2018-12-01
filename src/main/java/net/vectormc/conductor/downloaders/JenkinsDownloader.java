@@ -85,7 +85,7 @@ public class JenkinsDownloader extends Downloader {
             }
             if (acceptedArtifact == null | acceptedBuild == null) {
                 Logger.getLogger().info("[Jenkins] Unable to retrieve artifact(s)/build(s) | " + this.job + " | " + this.artifactName + " #" + this.number);
-                Conductor.getInstance().shutdown(true);
+                Conductor.shutdown(true);
             }
 
             Logger.getLogger().info("[Jenkins] Retrieving " + acceptedArtifact.getFileName() + " as " + this.fileName);
@@ -94,8 +94,8 @@ public class JenkinsDownloader extends Downloader {
 
             File out = new File(getTempFolder() + File.separator + this.fileName);
             if (out.exists()) {
-                Logger.getLogger().info("[Jenkins] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
-                out.delete();
+                Logger.getLogger().info("[Jenkins] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:"
+                        + out.delete());
             }
 
             ReadableByteChannel readableByteChannel = Channels.newChannel(inputStream);
@@ -110,15 +110,9 @@ public class JenkinsDownloader extends Downloader {
             readableByteChannel.close();
             inputStream.close();
 
-        } catch (URISyntaxException use) {
-            use.printStackTrace();
-            Conductor.getInstance().shutdown(true);
-        } catch (IOException io) {
-            io.printStackTrace();
-            Conductor.getInstance().shutdown(true);
-        } catch (NullPointerException npe) {
-            npe.printStackTrace();
-            Conductor.getInstance().shutdown(true);
+        } catch (URISyntaxException | IOException | NullPointerException e) {
+            e.printStackTrace();
+            Conductor.shutdown(true);
         }
     }
 }

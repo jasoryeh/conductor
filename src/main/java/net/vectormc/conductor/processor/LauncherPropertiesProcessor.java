@@ -45,7 +45,7 @@ public class LauncherPropertiesProcessor {
                     // Any exceptions
                     e.printStackTrace();
                     Logger.getLogger().error("Unable to load offline configuration.");
-                    Conductor.getInstance().shutdown(true);
+                    Conductor.shutdown(true);
                 }
             } else {
                 try {
@@ -56,7 +56,7 @@ public class LauncherPropertiesProcessor {
                     Logger.getLogger().warn(io.getMessage());
                     Logger.getLogger().warn("Unable to copy a fresh config");
                 }
-                Conductor.getInstance().shutdown(true);
+                Conductor.shutdown(true);
             }
         } else {
             if(config.entryExists("name")) {
@@ -90,14 +90,14 @@ public class LauncherPropertiesProcessor {
                         }
                     } catch(Exception e) {
                         Logger.getLogger().error("Unable to download/access config | " + e.getMessage());
-                        Conductor.getInstance().shutdown(true);
+                        Conductor.shutdown(true);
                     }
                 }
             }
         }
 
         new RuntimeException("Oh no! This isn't supposed to happen!").printStackTrace();
-        Conductor.getInstance().shutdown(true);
+        Conductor.shutdown(true);
 
         return null;
     }

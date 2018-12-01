@@ -38,7 +38,7 @@ public class ServerJsonConfigProcessor {
         if (!processTree(tree, config, "", true)) {
             Logger.getLogger().error("Something went wrong, shutting down.");
             new DebugException().printStackTrace();
-            Conductor.getInstance().shutdown(true);
+            Conductor.shutdown(true);
         }
 
         return config;
@@ -50,7 +50,7 @@ public class ServerJsonConfigProcessor {
      * @param conf Server configuration
      * @param parents Parents of tree
      * @param recursive whether to not to go through all of them
-     * @return
+     * @return Success/fail
      */
     private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents, boolean recursive) {
         for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
@@ -80,7 +80,7 @@ public class ServerJsonConfigProcessor {
 
         boolean fileOverwrite = obj.get("overwrite") == null ? conf.isOverwrite() : obj.get("overwrite").getAsBoolean();
         if(f.exists() && !fileOverwrite) {
-            Logger.getLogger().info("Skipping " + f.getAbsolutePath() + " told to not re-download.");
+            Logger.getLogger().info("Skipping " + f.getAbsolutePath() + ", configuration specified not to re-download");
             return true;
         }
         if(f.exists() && (conf.isOverwrite() && fileOverwrite)) {
@@ -154,20 +154,10 @@ public class ServerJsonConfigProcessor {
                             // Finish unzip
 
                             // ... move on
-                        } catch(RetrievalException re) {
+                        } catch(RetrievalException | IOException re) {
                             re.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
-                        } catch(FileNotFoundException fnfe) {
-                            fnfe.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
-                        } catch(IOException ioe) {
-                            ioe.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
-                        }/* catch(ZipException ze) {
-                            Logger.getLogger().error("Unable to process the zip file.");
-                            ze.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
-                        }*/
+                            Conductor.shutdown(true);
+                        }
                         break;
                     case JENKINS:
                         // TODO: Jenkins WIP
@@ -222,15 +212,9 @@ public class ServerJsonConfigProcessor {
                                     ud.getDownloadedFile().toPath(),
                                     f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             // ... move on
-                        } catch(RetrievalException re) {
+                        } catch(RetrievalException | IOException re) {
                             re.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
-                        } catch(FileNotFoundException fnfe) {
-                            fnfe.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
-                        } catch(IOException ioe) {
-                            ioe.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
+                            Conductor.shutdown(true);
                         }
                         break;
                     case JENKINS:
@@ -241,7 +225,7 @@ public class ServerJsonConfigProcessor {
                                     || !config.entryExists("jenkinsPasswordOrToken");
                             if(!retrieval.get("auth").getAsBoolean() && endNoAuth) {
                                 Logger.getLogger().error("Jenkins Authentication not present, not continuing.");
-                                Conductor.getInstance().shutdown(true);
+                                Conductor.shutdown(true);
                             }
 
                             JsonObject jenkinsAuth = retrieval.get("jenkinsAuth").getAsJsonObject();
@@ -251,7 +235,7 @@ public class ServerJsonConfigProcessor {
                             boolean endNoInfo = (jenkinsAuth.get("job") == null) || (jenkinsAuth.get("artifact") == null) || (jenkinsAuth.get("number") == null);
                             if(endNoInfo) {
                                 Logger.getLogger().error("Jenkins artifact information not present, not continuing.");
-                                Conductor.getInstance().shutdown(true);
+                                Conductor.shutdown(true);
                             }
 
                             String job = jenkinsAuth.get("job").getAsString();
@@ -272,12 +256,9 @@ public class ServerJsonConfigProcessor {
 
 
                             //... move on
-                        } catch(RetrievalException re) {
+                        } catch(RetrievalException | IOException re) {
                             re.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
-                        } catch(IOException io) {
-                            io.printStackTrace();
-                            Conductor.getInstance().shutdown(true);
+                            Conductor.shutdown(true);
                         }
                         break;
                     case SPECIFIED:
