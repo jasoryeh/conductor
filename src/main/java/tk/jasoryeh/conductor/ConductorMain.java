@@ -19,37 +19,42 @@ public class ConductorMain {
             Logger.getLogger().info("Update complete.");
         }
 
-        Logger.getLogger().info("--- Info ---");
+        Logger.getLogger().info("<< --- < Conductor > --- >>");
         String argumentFull = String.join(" ", Utility.getJVMArguments());
-        Logger.getLogger().info("Arguments - " + argumentFull);
+        Logger.getLogger().debug("Arguments - " + argumentFull);
 
-        Logger.getLogger().info("File Test - " + new File("test").getAbsolutePath());
+        Logger.getLogger().debug("File Test - " + new File("test").getAbsolutePath());
 
-        Logger.getLogger().info("File separator - " + File.separator);
+        Logger.getLogger().debug("File separator - " + File.separator);
+
+        Logger.getLogger().info("");
+        Logger.getLogger().info("");
+        Logger.getLogger().info("");
+        Logger.getLogger().info("Conductor is starting up...");
+        Logger.getLogger().info("");
+        Logger.getLogger().info("");
+        Logger.getLogger().info("");
         Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
         Logger.getLogger().info("Temporary in - " + Downloader.getTempFolder().getAbsolutePath());
-        Logger.getLogger().info("--- Info ---");
+        Logger.getLogger().info("<< --- < Conductor > --- >>");
 
         Conductor conductor = new Conductor();
     }
 
     private static boolean attemptUpdate() {
 
-        Logger.getLogger().info("[UPDATE] Attempting update!");
+        Logger.getLogger().info("[UPDATE] Attempting to retrieve latest update of conductor!");
 
         Configuration configuration = new Configuration("serverlauncher.properties", true);
         configuration.reload();
 
-        Logger.getLogger().debug("Checking if self update is enabled");
-
         boolean selfUpdate = configuration.entryExists("selfUpdate") && Boolean.valueOf(configuration.getString("selfUpdate"));
         if(selfUpdate) {
-            Logger.getLogger().debug("Checking if self update details are specified");
             boolean valuesExist = configuration.entryExists("selfUpdateJob") && configuration.entryExists("selfUpdateVersion")
                     && configuration.entryExists("selfUpdateArtifactName") && configuration.entryExists("selfUpdateHost")
                     && configuration.entryExists("selfUpdateUsername") && configuration.entryExists("selfUpdatePasswordOrToken");
             if(valuesExist) {
-                Logger.getLogger().debug("Updating...");
+                Logger.getLogger().debug("Attempting to update from jenkins...");
                 String job = configuration.getString("selfUpdateJob");
                 String artifact = configuration.getString("selfUpdateArtifactName");
 
@@ -71,6 +76,7 @@ public class ConductorMain {
                     if(oldConudctor.exists()) {
                         oldConudctor.delete();
                     }
+
                     Files.copy(jd.getDownloadedFile(), oldConudctor);
 
                     String program = new File(Utility.getCWD().toString()).toURI().relativize(oldConudctor.toURI()).getPath();
