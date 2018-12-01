@@ -45,14 +45,14 @@ public class Conductor extends Boot {
 
         if(obj == null) {
             Logger.getLogger().error("Unable to process launcher properties");
-            getInstance().shutdown(true);
+            shutdown(true);
         }
 
         ServerConfig conf = ServerJsonConfigProcessor.process(obj);
 
         if(conf == null) {
             Logger.getLogger().error("Unable to process server properties");
-            getInstance().shutdown(true);
+            shutdown(true);
         }
 
         String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
@@ -109,11 +109,12 @@ public class Conductor extends Boot {
     public static void shutdown(boolean err) {
         try {
             getInstance().onDisable();
-        } catch(Exception e) {}
+        } catch(Exception e) {
+            // ignore, it's only here to ensure the shutdown is always happening
+        }
 
         System.exit(err ? 1 : 0);
         Logger.getLogger().info("bye.");
-        Threads.sleep(10000);
     }
 
     public void reload() {

@@ -68,18 +68,18 @@ public class ConductorMain {
                 try {
                     jd.download();
 
-                    Logger.getLogger().debug("-> Starting process...");
+                    Logger.getLogger().debug("[UPDATE] Starting new process for updated jar file...");
                     Logger.getLogger().debug(Utility.getCWD() + File.separator + "conductor_latest.jar");
 
-                    File oldConudctor = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
+                    File oldConductor = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
 
-                    if(oldConudctor.exists()) {
-                        oldConudctor.delete();
+                    if(oldConductor.exists()) {
+                        Logger.getLogger().debug("Deletion of old conductor file: " + oldConductor.delete());
                     }
 
-                    Files.copy(jd.getDownloadedFile(), oldConudctor);
+                    Files.copy(jd.getDownloadedFile(), oldConductor);
 
-                    String program = new File(Utility.getCWD().toString()).toURI().relativize(oldConudctor.toURI()).getPath();
+                    String program = new File(Utility.getCWD().toString()).toURI().relativize(oldConductor.toURI()).getPath();
 
                     String extra = configuration.entryExists("bootUpdateWithSameParams") ? configuration.getString("bootUpdateWithSameParams").equalsIgnoreCase("true") ? String.join(" ", Utility.getJVMArguments()) : "" : "";
 
@@ -94,9 +94,7 @@ public class ConductorMain {
                             .redirectInput(ProcessBuilder.Redirect.INHERIT)
                             .start();
 
-                    int response = process.waitFor();
-
-                    Logger.getLogger().info("");
+                    Logger.getLogger().info("App response code: " + process.waitFor());
 
                     Conductor.shutdown(false);
 
