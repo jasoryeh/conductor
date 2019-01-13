@@ -1,5 +1,7 @@
 package tk.jasoryeh.conductor.log;
 
+import tk.jasoryeh.conductor.util.TerminalColors;
+
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.StringJoiner;
@@ -24,10 +26,10 @@ public class Logger {
     /**
      * Prefixes for the error messages
      */
-    private final static String INFOPREFIX = "[INFO]";
-    private final static String WARNPREFIX = "[WARN]";
-    private final static String ERRORPREFIX = "[ERROR]";
-    private final static String DEBUGPREFIX = "[DEBUG]";
+    private final static String INFOPREFIX = TerminalColors.RESET + "" + TerminalColors.WHITE + "[" + TerminalColors.GREEN + "INFO" + TerminalColors.WHITE + "]" + TerminalColors.RESET;
+    private final static String WARNPREFIX = TerminalColors.RESET + "" + TerminalColors.WHITE + "[" + TerminalColors.YELLOW + "WARN" + TerminalColors.WHITE + "]" + TerminalColors.RESET;
+    private final static String ERRORPREFIX = TerminalColors.RESET + "" + TerminalColors.WHITE + "[" + TerminalColors.RED + "ERROR" + TerminalColors.WHITE + "]" + TerminalColors.RESET;
+    private final static String DEBUGPREFIX = TerminalColors.RESET + "" + TerminalColors.WHITE + "[" + TerminalColors.CYAN_BOLD + "DEBUG" + TerminalColors.WHITE + "]" + TerminalColors.RESET;
 
     /**
      * All the logger methods
@@ -77,6 +79,7 @@ public class Logger {
         for(Object o : objects) {
             joiner.add(String.valueOf(o));
         }
-        return logDate() + " " + prefix + " " + joiner.toString();
+        return TerminalColors.RESET + "" + TerminalColors.WHITE + logDate() + " " + prefix + " " + TerminalColors.WHITE + joiner.toString() + TerminalColors.RESET;
+
     }
 }
