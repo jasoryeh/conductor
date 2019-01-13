@@ -19,6 +19,9 @@ import java.net.URISyntaxException;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
+/**
+ * Retrieve files from the Jenkins server specified
+ */
 public class JenkinsDownloader extends Downloader {
     @Getter
     private String host;
@@ -33,10 +36,31 @@ public class JenkinsDownloader extends Downloader {
     @Getter
     private String passwordOrToken;
 
+    /**
+     * Downloader for artifacts from your jenkins server
+     * @param job Job name
+     * @param artifactName Archived artifact's name from the job example test-1.0.jar
+     * @param number Build number (-1) for latest
+     * @param fileName Name you want it saved as ex. test-1.0.jar to test.jar
+     * @param replaceIfExists replace if it already exists in destination
+     * @param credentials jenkins credentials
+     */
     public JenkinsDownloader(String job, String artifactName, int number, String fileName, boolean replaceIfExists, Credentials credentials) {
         this(Conductor.getInstance().getConfig().getString("jenkinsHost"), job, artifactName, number, "", "", fileName, replaceIfExists, credentials);
     }
 
+    /**
+     * Same as above but with username/pass authorization plus host
+     * @param host jenkins host address
+     * @param job job name
+     * @param artifactName Archived artifact's name from the job ex. test-1.0.jar
+     * @param number Build number (-1 for latest)
+     * @param username Username
+     * @param passwordOrToken Password
+     * @param fileName Name to save the artifact as ex. test-1.0.jar to test.jar
+     * @param replaceIfExists replace if exists in destination
+     * @param credentials additional credentials
+     */
     public JenkinsDownloader(String host, String job, String artifactName, int number, String username, String passwordOrToken, String fileName, boolean replaceIfExists, Credentials credentials) {
         this.host = host;
         this.job = job;
@@ -53,6 +77,10 @@ public class JenkinsDownloader extends Downloader {
     @Getter
     private JenkinsServer jenkins;
 
+    /**
+     * Retrieve the file into temporary storage
+     * @throws RetrievalException thrown if fail, stops server to help you fix the problem
+     */
     @Override
     public void download() throws RetrievalException {
         try {

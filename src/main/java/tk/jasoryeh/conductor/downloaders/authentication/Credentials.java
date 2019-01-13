@@ -3,6 +3,9 @@ package tk.jasoryeh.conductor.downloaders.authentication;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Credentials as key-value pairs
+ */
 public class Credentials {
     public Map<CredentialType, Map<String, String>> credentials;
 

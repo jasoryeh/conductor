@@ -18,28 +18,42 @@ public class ConductorMain {
             attemptUpdate();
         } else {
             Logger.getLogger().info(Logger.EMPTY);
-            Logger.getLogger().info(TerminalColors.GREEN + "Update completed");
+            Logger.getLogger().info(Logger.EMPTY);
+            Logger.getLogger().info(Logger.EMPTY);
+            Logger.getLogger().info(TerminalColors.GREEN + "Conductor update completed!");
+            Logger.getLogger().info(TerminalColors.GREEN + "Loading files...");
+            Logger.getLogger().info(Logger.EMPTY);
+            Logger.getLogger().info(Logger.EMPTY);
             Logger.getLogger().info(Logger.EMPTY);
         }
 
         Logger.getLogger().info("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
+        Logger.getLogger().info(Logger.EMPTY);
+        Logger.getLogger().info(Logger.EMPTY);
+        Logger.getLogger().info(Logger.EMPTY);
+        Logger.getLogger().info("Server manager is " + TerminalColors.GREEN + "getting ready to work, loading info...");
+        Logger.getLogger().info(Logger.EMPTY);
+        Logger.getLogger().info(Logger.EMPTY);
+        Logger.getLogger().info(Logger.EMPTY);
+
         String argumentFull = String.join(" ", Utility.getJVMArguments());
         Logger.getLogger().debug("Arguments - " + argumentFull);
-
         Logger.getLogger().debug("File Test - " + new File("test").getAbsolutePath());
-
         Logger.getLogger().debug("File separator - " + File.separator);
+        Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
+        Logger.getLogger().info("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
 
         Logger.getLogger().info("");
         Logger.getLogger().info("");
         Logger.getLogger().info("");
-        Logger.getLogger().info("Conductor is starting up...");
+        Logger.getLogger().info("");
+        Logger.getLogger().info("");
+        Logger.getLogger().info("Working...");
         Logger.getLogger().info("");
         Logger.getLogger().info("");
         Logger.getLogger().info("");
-        Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
-        Logger.getLogger().info("Temporary in - " + Downloader.getTempFolder().getAbsolutePath());
-        Logger.getLogger().info("<< --- < Conductor > --- >>");
+        Logger.getLogger().info("");
+        Logger.getLogger().info("");
 
         Conductor conductor = new Conductor();
     }

@@ -121,7 +121,7 @@ public class Configuration {
      * Gets the string, if not exists returns the default value
      * @param key the key to the value
      * @param defaultVal value to return if not exists
-     * @return
+     * @return value
      */
     public String getString(String key, String defaultVal) {
         return this.rawProperties.getProperty(key, defaultVal);

@@ -22,6 +22,9 @@ public class Conductor extends Boot {
     @Setter
     private static Conductor instance;
 
+    /**
+     * With the creation of this object, we auto call onEnable and start the process
+     */
     Conductor() {
         instance = this;
         this.onEnable();

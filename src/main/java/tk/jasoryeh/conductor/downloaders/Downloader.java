@@ -8,6 +8,9 @@ import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
 
+/**
+ * A template for other downloader types such as the JsonDownloader and the URLDownloader
+ */
 public abstract class Downloader {
     @Setter
     private static File tempFolder = new File(Utility.getCWD() + File.separator + "launcher_tmp");

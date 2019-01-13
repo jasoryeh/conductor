@@ -21,6 +21,11 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 public class ServerJsonConfigProcessor {
+    /**
+     * Being processing the server_cnf.json, this will loop through everything and download/unzip/delete/etc. if necessary
+     * @param jsonObject parsed server_cnf.json
+     * @return The configuration of the current server
+     */
     public static ServerConfig process(final JsonObject jsonObject) {
         String name = jsonObject.get("templateName").getAsString();
         ServerType type = ServerType.valueOf(jsonObject.get("type").getAsString().toUpperCase());
@@ -49,7 +54,7 @@ public class ServerJsonConfigProcessor {
      * @param jsonObject object of tree
      * @param conf Server configuration
      * @param parents Parents of tree
-     * @param recursive whether to not to go through all of them
+     * @param recursive whether to not to go through all of them (auto-loop)
      * @return Success/fail
      */
     private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents, boolean recursive) {
@@ -69,7 +74,7 @@ public class ServerJsonConfigProcessor {
      * @param obj json object of the file/folder
      * @param conf server configuration object
      * @param parents folder to put the file/folder under ex. plugins/Some/Secret/Folder <- will place for example file test.txt in NO slashes beginning
-     * @param recursive go through each objects under all the other trees
+     * @param recursive go through each objects under all the other trees (auto-loop)
      * @return success or not
      */
     private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents, boolean recursive) {
