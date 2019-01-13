@@ -122,15 +122,17 @@ public class ConductorMain {
                     URLClassLoader customLoader = new URLClassLoader(urls, null);
                     //Custom Classloader Y loads its own class B
                     try {
-                        Class a = customLoader.loadClass("tk.jasoryeh.conductor.Conductor");
-                        if(a == null) {
+                        Class<?> conductorClass = customLoader.loadClass("tk.jasoryeh.conductor.Conductor");
+
+                        if(conductorClass == null) {
                             Logger.getLogger().error("Invalid jar file, falling back!");
                             throw new Exception("Dummy exception.");
                         }
 
                         // Run.
-                        Method quickStart = a.getMethod("quickStart", String[].class);
-                        quickStart.invoke(null, new String[0]);
+                        Method quickStart = conductorClass.getMethod("quickStart", String[].class);
+                        String[] args = new String[0];
+                        quickStart.invoke(null, args);
                     } catch (ClassNotFoundException e) {
                         Logger.getLogger().error("Invalid jar file, falling back!");
                         throw e;
