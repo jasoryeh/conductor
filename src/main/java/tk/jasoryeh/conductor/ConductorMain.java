@@ -108,48 +108,50 @@ public class ConductorMain {
 
                     Logger.getLogger().debug(extra, program);
 
-                    /* Experimental jar starter. */
-
-                    Logger.getLogger().info("Experimental version, using classloader to start new conductor.");
-
-                    File jarFile = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
-                    if (!jarFile.exists() || !jarFile.canRead()) {
-                        Logger.getLogger().error("Invalid jar file, falling back!");
-                        throw new Exception("Dummy exception.");
-                    }
-
-                    URL[] urls = new URL[]{jarFile.toURI().toURL()};
-                    URLClassLoader customLoader = new URLClassLoader(urls, null);
-                    //Custom Classloader Y loads its own class B
                     try {
-                        Class<?> conductorClass = customLoader.loadClass("tk.jasoryeh.conductor.Conductor");
+                        /* Experimental jar starter. */
 
-                        if(conductorClass == null) {
+                        Logger.getLogger().info("Experimental version, using classloader to start new conductor.");
+
+                        File jarFile = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
+                        if (!jarFile.exists() || !jarFile.canRead()) {
                             Logger.getLogger().error("Invalid jar file, falling back!");
                             throw new Exception("Dummy exception.");
                         }
 
-                        // Run.
-                        conductorClass.getMethod("quickStart").invoke(null);
-                    } catch (ClassNotFoundException e) {
-                        Logger.getLogger().error("Invalid jar file, falling back!");
-                        throw e;
+                        URL[] urls = new URL[]{jarFile.toURI().toURL()};
+                        URLClassLoader customLoader = new URLClassLoader(urls, null);
+
+                        try {
+                            Class<?> conductorClass = customLoader.loadClass("tk.jasoryeh.conductor.Conductor");
+
+                            if(conductorClass == null) {
+                                Logger.getLogger().error("Invalid jar file, falling back!");
+                                throw new Exception("Dummy exception.");
+                            }
+
+                            // Run.
+                            conductorClass.getMethod("quickStart").invoke(null);
+                        } catch (ClassNotFoundException e) {
+                            Logger.getLogger().error("Invalid jar file, falling back!");
+                            throw e;
+                        }
+
+                        Logger.getLogger().info("Finished.");
+
+                        /* END */
+                    } catch(Exception e) {
+                        // Fail, use default.
+
+                        ProcessBuilder processBuilder = new ProcessBuilder("java",
+                                extra, "-jar", program);
+                        Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
+                                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                                .redirectInput(ProcessBuilder.Redirect.INHERIT)
+                                .start();
+
+                        Logger.getLogger().info("App response code: " + process.waitFor());
                     }
-
-                    Logger.getLogger().info("COMPLETE> Finished.");
-
-                    /* END */
-
-                    /*
-                    ProcessBuilder processBuilder = new ProcessBuilder("java",
-                            extra, "-jar", program);
-                    Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
-                            .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                            .redirectInput(ProcessBuilder.Redirect.INHERIT)
-                            .start();
-
-                    Logger.getLogger().info("App response code: " + process.waitFor());
-                    */
 
 
                     Conductor.shutdown(false);

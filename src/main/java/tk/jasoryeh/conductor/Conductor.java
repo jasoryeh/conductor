@@ -9,6 +9,7 @@ import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.processor.LauncherPropertiesProcessor;
 import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
 import tk.jasoryeh.conductor.scheduler.Threads;
+import tk.jasoryeh.conductor.util.Experimental;
 import tk.jasoryeh.conductor.util.Utility;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
@@ -58,30 +59,40 @@ public class Conductor extends Boot {
             shutdown(true);
         }
 
-        String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
 
-        Logger.getLogger().debug("-> Process configuration");
-        Logger.getLogger().debug(String.join(" ", Utility.getJVMArguments()));
-        Logger.getLogger().debug(conf.getType().getEquivalent(),
-                String.join(" ", Utility.getJVMArguments()), "-jar", program);
-        Logger.getLogger().debug("-> Starting process...");
-
-        String parameters = obj.get("launchWithSameParams") != null ? obj.get("launchWithSameParams").getAsBoolean() ? String.join(" ", Utility.getJVMArguments()) : "" : "";
-        parameters += (parameters.equalsIgnoreCase("") ? "" : " ") + "-DconductorUpdated=yes -DstartedWithConductor=yes";
-
-        ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
-                parameters, "-jar", program);
-        Process process;
         try {
-            process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
-                    .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                    .redirectInput(ProcessBuilder.Redirect.INHERIT)
-                    .start();
-            Logger.getLogger().info("Started server... Waiting for completion of " + conf.getName());
-
             DateTime timeStart = DateTime.now();
+            int response = -2;
+            try {
+                Logger.getLogger().info("Trying experimental method, falling back if fail.");
 
-            int response = process.waitFor();
+                Logger.getLogger().info("Starting server... Waiting for completion.");
+                Experimental.clLoadMain(conf.getFileForLaunch());
+
+            } catch(Exception e) {
+                String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
+
+                Logger.getLogger().debug("-> Process configuration");
+                Logger.getLogger().debug(String.join(" ", Utility.getJVMArguments()));
+                Logger.getLogger().debug(conf.getType().getEquivalent(),
+                        String.join(" ", Utility.getJVMArguments()), "-jar", program);
+                Logger.getLogger().debug("-> Starting process...");
+
+                String parameters = obj.get("launchWithSameParams") != null ? obj.get("launchWithSameParams").getAsBoolean() ? String.join(" ", Utility.getJVMArguments()) : "" : "";
+                parameters += (parameters.equalsIgnoreCase("") ? "" : " ") + "-DconductorUpdated=yes -DstartedWithConductor=yes";
+
+                ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
+                        parameters, "-jar", program);
+                Process process;
+                process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
+                        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                        .redirectInput(ProcessBuilder.Redirect.INHERIT)
+                        .start();
+                Logger.getLogger().info("Started server... Waiting for completion of " + conf.getName());
+                process.waitFor();
+            }
+
+
             DateTime timeEnd = DateTime.now();
             Logger.getLogger().info("Process ended. Exit code " + response);
 
