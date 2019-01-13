@@ -6,6 +6,7 @@ import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
@@ -16,10 +17,12 @@ public class ConductorMain {
         if(System.getProperty("conductorUpdated") == null || System.getProperty("conductorUpdated").equalsIgnoreCase("")) {
             attemptUpdate();
         } else {
-            Logger.getLogger().info("Update complete.");
+            Logger.getLogger().info(Logger.EMPTY);
+            Logger.getLogger().info(TerminalColors.GREEN + "Update completed");
+            Logger.getLogger().info(Logger.EMPTY);
         }
 
-        Logger.getLogger().info("<< --- < Conductor > --- >>");
+        Logger.getLogger().info("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
         String argumentFull = String.join(" ", Utility.getJVMArguments());
         Logger.getLogger().debug("Arguments - " + argumentFull);
 

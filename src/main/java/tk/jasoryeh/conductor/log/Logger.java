@@ -23,6 +23,8 @@ public class Logger {
         instance = this;
     }
 
+    public final static String EMPTY = "";
+
     /**
      * Prefixes for the error messages
      */
