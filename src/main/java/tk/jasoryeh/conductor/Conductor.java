@@ -125,4 +125,13 @@ public class Conductor extends Boot {
         this.config.reload();
         this.onEnable();
     }
+
+    /**
+     * To be called to skip updates and other stuff.
+     */
+    public static void quickStart() {
+        Logger.getLogger().info("Quickstart triggered, application update complete, starting conductor...");
+
+        Conductor conductor = new Conductor();
+    }
 }

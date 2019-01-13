@@ -130,9 +130,7 @@ public class ConductorMain {
                         }
 
                         // Run.
-                        Method quickStart = conductorClass.getMethod("quickStart", String[].class);
-                        String[] args = new String[0];
-                        quickStart.invoke(null, args);
+                        conductorClass.getMethod("quickStart").invoke(null);
                     } catch (ClassNotFoundException e) {
                         Logger.getLogger().error("Invalid jar file, falling back!");
                         throw e;
