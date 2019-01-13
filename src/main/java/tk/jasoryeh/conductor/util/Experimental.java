@@ -20,10 +20,10 @@ public class Experimental {
             throw new Exception("Failed to launch jar.");
         }
 
-        URL[] urls = new URL[]{jarFile.toURI().toURL()};
-        URLClassLoader customLoader = new URLClassLoader(urls, null);
-
         JarFile jar = new JarFile(jarFile);
+
+        URLClassLoader customLoader = new URLClassLoader(new URL[] {jarFile.toURI().toURL()}, null);
+
         String mainClassPath = jar.getManifest().getMainAttributes().getValue("Main-Class");
 
         Class<?> mainClass = customLoader.loadClass(mainClassPath);
@@ -34,9 +34,9 @@ public class Experimental {
         }
 
         // Run.
-        Method main = mainClass.getMethod("main", String[].class);
+        Method main = mainClass.getDeclaredMethod("main", new Class[]{String[].class});
 
-        main.invoke(null, new String[0]);
+        main.invoke(null, new Object[]{new String[0]});
 
         Logger.getLogger().info("Finished.");
 

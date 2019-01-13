@@ -64,12 +64,17 @@ public class Conductor extends Boot {
             DateTime timeStart = DateTime.now();
             int response = -2;
             try {
+                if(true) throw new Exception("Let's skip this part..."); // Bukkit has trouble with this...
+
                 Logger.getLogger().info("Trying experimental method, falling back if fail.");
 
                 Logger.getLogger().info("Starting server... Waiting for completion.");
                 Experimental.clLoadMain(conf.getFileForLaunch());
 
             } catch(Exception e) {
+                Logger.getLogger().info("Using ProcessBuilder method.");
+                e.printStackTrace();
+
                 String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
 
                 Logger.getLogger().debug("-> Process configuration");

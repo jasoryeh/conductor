@@ -141,6 +141,8 @@ public class ConductorMain {
 
                         /* END */
                     } catch(Exception e) {
+                        Logger.getLogger().info("Using default ProcessBuilder");
+                        e.printStackTrace();
                         // Fail, use default.
 
                         ProcessBuilder processBuilder = new ProcessBuilder("java",
