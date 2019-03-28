@@ -59,7 +59,15 @@ public class Conductor extends Boot {
             shutdown(true);
         }
 
+        executeLaunch(conf, obj);
+    }
 
+    /**
+     * Launches the configured program
+     * @param conf Program configuration
+     * @param obj Launcher configuration
+     */
+    public void executeLaunch(ServerConfig conf, JsonObject obj) {
         try {
             DateTime timeStart = DateTime.now();
             int response = -2;
@@ -94,12 +102,12 @@ public class Conductor extends Boot {
                         .redirectInput(ProcessBuilder.Redirect.INHERIT)
                         .start();
                 Logger.getLogger().info("Started server... Waiting for completion of " + conf.getName());
-                process.waitFor();
+                response = process.waitFor();
             }
 
 
             DateTime timeEnd = DateTime.now();
-            Logger.getLogger().info("Process ended. Exit code " + response);
+            Logger.getLogger().info("Process ended. Exit code " + response + (response == -2 ? "(possible internal exit code)" : ""));
 
             Period difference = new Period(timeStart, timeEnd);
 
