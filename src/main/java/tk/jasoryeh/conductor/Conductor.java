@@ -127,8 +127,8 @@ public class Conductor extends Boot {
             Logger.getLogger().info("Ran for " + elapsed);
             Logger.getLogger().info("Bye.");
 
-            if(response == -5) {
-                Logger.getLogger().info("Response code of -5 detected (restart)");
+            if(response == 251) {
+                Logger.getLogger().info("Response code of 251 detected (restart)");
                 Logger.getLogger().info("Attempting restart.");
                 executeLaunch(conf, obj);
             }
