@@ -4,6 +4,7 @@ import tk.jasoryeh.conductor.util.TerminalColors;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.StringJoiner;
 
 public class Logger {
@@ -59,8 +60,27 @@ public class Logger {
      * @return String with brackets to be used in the message
      */
     private static String logDate() {
-        return "[" + DateTimeFormatter.ISO_ZONED_DATE_TIME.format(ZonedDateTime.now()) + "]";
+        ZonedDateTime zdt = ZonedDateTime.now();
+
+        // Perform adjustments here.
+        int year = zdt.getYear();
+        int month = zdt.getMonthValue();
+        int day = zdt.getDayOfMonth();
+
+        String hour = zdt.getHour() + ""; hour = (hour.length() == 1) ? (0 + hour) : (hour);
+        String min = zdt.getMinute() + ""; min = (min.length() == 1) ? (0 + min) : (min);
+        String sec = zdt.getSecond() + ""; sec = (sec.length() == 1) ? (0 + sec) : (sec);
+
+        String ns = zdt.getNano() + ""; ns = (ns.length() > 3) ? ns.substring(0, 2) : (ns);
+
+        String tz = zdt.getZone().getId();
+
+        // Actually shown.
+        String date = year + "-" + month + "-" + day + " | "
+                + hour + ":" + min + ":" + sec + "." + ns + " | " + tz;
+        return "[" + date + "]";
     }
+
 
     /**
      * Quick S.O.P.

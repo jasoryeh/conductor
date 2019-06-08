@@ -5,11 +5,13 @@ import lombok.Getter;
 import lombok.Setter;
 import tk.jasoryeh.conductor.config.Configuration;
 import tk.jasoryeh.conductor.config.ServerConfig;
+import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.processor.LauncherPropertiesProcessor;
 import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
 import tk.jasoryeh.conductor.scheduler.Threads;
 import tk.jasoryeh.conductor.util.Experimental;
+import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
@@ -28,6 +30,19 @@ public class Conductor extends Boot {
      */
     Conductor() {
         instance = this;
+
+        Logger.getLogger().info("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
+        Logger.getLogger().info("Getting ready to work...");
+
+        String argumentFull = String.join(" ", Utility.getJVMArguments());
+        Logger.getLogger().debug("Arguments - " + argumentFull);
+        Logger.getLogger().debug("File Test - " + new File("test").getAbsolutePath());
+        Logger.getLogger().debug("File separator - " + File.separator);
+        Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
+        Logger.getLogger().info("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
+
+        Logger.getLogger().info("Working...");
+
         this.onEnable();
     }
 

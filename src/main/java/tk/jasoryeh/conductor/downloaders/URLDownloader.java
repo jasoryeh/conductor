@@ -46,9 +46,9 @@ public class URLDownloader extends Downloader {
 
             File out = new File(getTempFolder() + File.separator + this.fileName);
 
-            if (out.exists()) Logger.getLogger().debug("[Download] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
+            if (out.exists()) this.log("Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
 
-            Logger.getLogger().info("[Download] Downloading file... " + out.getAbsolutePath() + " from " + url);
+            this.log("Downloading file... " + out.getAbsolutePath() + " from " + url);
 
             InputStream inputStream = huc.getInputStream();
             FileUtils.copyInputStreamToFile(inputStream, out);
@@ -59,5 +59,9 @@ public class URLDownloader extends Downloader {
         } catch(Exception e) {
             throw new RetrievalException(e);
         }
+    }
+
+    private void log(String msg) {
+        Logger.getLogger().info("[URL Download] " + msg);
     }
 }

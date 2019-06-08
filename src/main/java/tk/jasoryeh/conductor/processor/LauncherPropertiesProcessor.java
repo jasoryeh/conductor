@@ -51,10 +51,10 @@ public class LauncherPropertiesProcessor {
                 try {
                     InputStream i = ConductorMain.class.getResourceAsStream("/example.launcher.config.json");
                     Files.copy(i, Paths.get(Utility.getCWD().toString() + File.separator + config.getString("offlineConfig")), StandardCopyOption.REPLACE_EXISTING);
-                    Logger.getLogger().info("Copied a fresh server config to " + config.getString("offlineConfig"));
+                    Logger.getLogger().info("Copied a fresh server configuration to " + config.getString("offlineConfig"));
                 } catch(IOException io) {
                     Logger.getLogger().warn(io.getMessage());
-                    Logger.getLogger().warn("Unable to copy a fresh config");
+                    Logger.getLogger().warn("Unable to copy a fresh configuration");
                 }
                 Conductor.shutdown(true);
             }

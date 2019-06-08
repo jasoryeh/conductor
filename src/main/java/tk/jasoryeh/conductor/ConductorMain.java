@@ -2,7 +2,6 @@ package tk.jasoryeh.conductor;
 
 import com.google.common.io.Files;
 import tk.jasoryeh.conductor.config.Configuration;
-import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.log.Logger;
@@ -10,56 +9,28 @@ import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
-import java.lang.reflect.Method;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 
 public class ConductorMain {
 
     public static void main(String[] args) {
-        Logger.getLogger().debug(System.getProperty("conductorUpdated"));
+        Logger.getLogger().debug("Launch Parameter 'conductorUpdated' = " + System.getProperty("conductorUpdated"));
         if(System.getProperty("conductorUpdated") == null || System.getProperty("conductorUpdated").equalsIgnoreCase("")) {
-            attemptUpdate();
+            if (attemptUpdate()) {
+                // Successful update, parent can close.
+                Conductor.shutdown(false);
+            }
+            // failure! try using already installed conductor version
         } else {
-            Logger.getLogger().info(Logger.EMPTY);
-            Logger.getLogger().info(Logger.EMPTY);
-            Logger.getLogger().info(Logger.EMPTY);
+            // Everything below this usually doesn't show up because child process usually works, and jumps to 'quickstart' instead.
             Logger.getLogger().info(TerminalColors.GREEN + "Conductor update completed!");
-            Logger.getLogger().info(TerminalColors.GREEN + "Loading files...");
-            Logger.getLogger().info(Logger.EMPTY);
-            Logger.getLogger().info(Logger.EMPTY);
-            Logger.getLogger().info(Logger.EMPTY);
+            Conductor.quickStart();
         }
 
-        Logger.getLogger().info("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
-        Logger.getLogger().info(Logger.EMPTY);
-        Logger.getLogger().info(Logger.EMPTY);
-        Logger.getLogger().info(Logger.EMPTY);
-        Logger.getLogger().info("Server manager is " + TerminalColors.GREEN + "getting ready to work, loading info...");
-        Logger.getLogger().info(Logger.EMPTY);
-        Logger.getLogger().info(Logger.EMPTY);
-        Logger.getLogger().info(Logger.EMPTY);
-
-        String argumentFull = String.join(" ", Utility.getJVMArguments());
-        Logger.getLogger().debug("Arguments - " + argumentFull);
-        Logger.getLogger().debug("File Test - " + new File("test").getAbsolutePath());
-        Logger.getLogger().debug("File separator - " + File.separator);
-        Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
-        Logger.getLogger().info("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
-
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("Working...");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-        Logger.getLogger().info("");
-
-        Conductor conductor = new Conductor();
+        Logger.getLogger().error("Unknown problem has occurred. Please try again later.");
+        Conductor.shutdown(false);
     }
 
     private static boolean attemptUpdate() {
@@ -75,7 +46,7 @@ public class ConductorMain {
                     && configuration.entryExists("selfUpdateArtifactName") && configuration.entryExists("selfUpdateHost")
                     && configuration.entryExists("selfUpdateUsername") && configuration.entryExists("selfUpdatePasswordOrToken");
             if(valuesExist) {
-                Logger.getLogger().debug("Attempting to update from jenkins...");
+                Logger.getLogger().debug("[UPDATE] Attempting to update from jenkins...");
                 String job = configuration.getString("selfUpdateJob");
                 String artifact = configuration.getString("selfUpdateArtifactName");
 
@@ -87,75 +58,58 @@ public class ConductorMain {
 
                 JenkinsDownloader jd = new JenkinsDownloader(host, job, artifact, build, username, passwordOrToken, "conductor_latest.jar", true, new Credentials());
                 try {
+                    // Retrieve updated version, if fails everything else doesn't go.
                     jd.download();
 
-                    Logger.getLogger().debug("[UPDATE] Starting new process for updated jar file...");
-                    Logger.getLogger().debug(Utility.getCWD() + File.separator + "conductor_latest.jar");
-
                     File oldConductor = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
+                    Logger.getLogger().debug("[UPDATE] Starting new process for updated jar file... [" + oldConductor.getAbsolutePath() + "]");
 
                     if(oldConductor.exists()) {
-                        Logger.getLogger().debug("Deletion of old conductor file: " + oldConductor.delete());
+                        Logger.getLogger().debug("[UPDATE] Deletion of old conductor file: " + (oldConductor.delete() ? "successful" : "unsuccessful"));
                     }
-
                     Files.copy(jd.getDownloadedFile(), oldConductor);
 
                     String program = new File(Utility.getCWD().toString()).toURI().relativize(oldConductor.toURI()).getPath();
 
-                    String extra = configuration.entryExists("bootUpdateWithSameParams") ? configuration.getString("bootUpdateWithSameParams").equalsIgnoreCase("true") ? String.join(" ", Utility.getJVMArguments()) : "" : "";
-
+                    String extra = configuration.entryExists("bootUpdateWithSameParams") ?
+                            (configuration.getString("bootUpdateWithSameParams").equalsIgnoreCase("true") ?
+                                    String.join(" ", Utility.getJVMArguments()) :
+                                    "") :
+                            "";
                     extra += (extra.equalsIgnoreCase("") ? "" : " ") + "-DconductorUpdated=yes";
 
                     Logger.getLogger().debug(extra, program);
 
                     try {
-                        /* Experimental jar starter. */
-
-                        Logger.getLogger().info("Experimental version, using classloader to start new conductor.");
+                        // Try - Experimental
 
                         File jarFile = new File(Utility.getCWD() + File.separator + "conductor_latest.jar");
-                        if (!jarFile.exists() || !jarFile.canRead()) {
+                        URL[] urls = new URL[]{jarFile.toURI().toURL()};
+                        URLClassLoader customLoader = new URLClassLoader(urls, null);
+
+                        Class<?> conductorClass = customLoader.loadClass("tk.jasoryeh.conductor.Conductor");
+
+                        if(conductorClass == null) {
                             Logger.getLogger().error("Invalid jar file, falling back!");
                             throw new Exception("Dummy exception.");
                         }
 
-                        URL[] urls = new URL[]{jarFile.toURI().toURL()};
-                        URLClassLoader customLoader = new URLClassLoader(urls, null);
-
-                        try {
-                            Class<?> conductorClass = customLoader.loadClass("tk.jasoryeh.conductor.Conductor");
-
-                            if(conductorClass == null) {
-                                Logger.getLogger().error("Invalid jar file, falling back!");
-                                throw new Exception("Dummy exception.");
-                            }
-
-                            // Run.
-                            conductorClass.getMethod("quickStart").invoke(null);
-                        } catch (ClassNotFoundException e) {
-                            Logger.getLogger().error("Invalid jar file, falling back!");
-                            throw e;
-                        }
-
-                        Logger.getLogger().info("Finished.");
-
-                        /* END */
-                    } catch(Exception e) {
-                        Logger.getLogger().info("Using default ProcessBuilder");
+                        // Run. - also waits for completion.. i think
+                        conductorClass.getMethod("quickStart").invoke(null);
+                    } catch (ClassNotFoundException e) {
+                        Logger.getLogger().error("Invalid jar file, falling back!");
                         e.printStackTrace();
-                        // Fail, use default.
 
-                        ProcessBuilder processBuilder = new ProcessBuilder("java",
+                        // Fail, use default. - Regular
+                        Logger.getLogger().info("Using default ProcessBuilder");
+                        Process process = processBuilder("java",
                                 extra, "-jar", program);
-                        Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
-                                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                                .redirectInput(ProcessBuilder.Redirect.INHERIT)
-                                .start();
 
+                        // after build wait for
                         Logger.getLogger().info("App response code: " + process.waitFor());
                     }
 
-
+                    // Auto shutdown
                     Conductor.shutdown(false);
 
                     return true;
@@ -169,6 +123,18 @@ public class ConductorMain {
             Logger.getLogger().info("[UPDATE] Unable to retrieve update, no info given.");
         }
         return false;
+    }
+
+    private static Process processBuilder(String... args) throws IOException {
+
+        Logger.getLogger().debug("[Process] Building process for [" + Utility.join(" ", args) + "]");
+        ProcessBuilder builder = new ProcessBuilder(args)
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                .redirectError(ProcessBuilder.Redirect.INHERIT)
+                .redirectInput(ProcessBuilder.Redirect.INHERIT);
+        Logger.getLogger().debug("[Process] Process built, now starting. [" + Utility.join(" ", args) + "]");
+
+        return builder.start();
     }
 
 }

@@ -31,4 +31,12 @@ public class Utility {
         RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         return runtimeMXBean.getInputArguments();
     }
+
+    public static String join(String join, String[] obj) {
+        StringBuilder ret = new StringBuilder();
+        for (String s : obj) {
+            ret.append(s).append(join);
+        }
+        return ret.toString();
+    }
 }

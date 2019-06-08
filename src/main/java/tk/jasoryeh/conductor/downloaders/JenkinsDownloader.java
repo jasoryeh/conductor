@@ -93,8 +93,9 @@ public class JenkinsDownloader extends Downloader {
             if (number == -1) {
                 // Latest
                 for (Artifact artifact : job.details().getLastSuccessfulBuild().details().getArtifacts()) {
-                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
+                    this.log("Found artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
                     if (artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
+                        this.log("Artifact matched | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
                         acceptedArtifact = artifact;
                         acceptedBuild = job.details().getLastSuccessfulBuild();
                         break;
@@ -103,8 +104,9 @@ public class JenkinsDownloader extends Downloader {
             } else {
                 // Specified job run number
                 for (Artifact artifact : job.details().getBuildByNumber(this.number).details().getArtifacts()) {
-                    Logger.getLogger().debug("[Jenkins] Artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
+                    this.log("Found artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
                     if (artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
+                        this.log("Artifact matched | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
                         acceptedArtifact = artifact;
                         acceptedBuild = job.details().getBuildByNumber(this.number);
                         break;
@@ -112,35 +114,35 @@ public class JenkinsDownloader extends Downloader {
                 }
             }
             if (acceptedArtifact == null | acceptedBuild == null) {
-                Logger.getLogger().info("[Jenkins] Unable to retrieve artifact(s)/build(s) | " + this.job + " | " + this.artifactName + " #" + this.number);
+                this.log("Unable to find the artifact/build | " + this.job + " | " + this.artifactName + " #" + this.number);
                 Conductor.shutdown(true);
+            } else {
+                this.log("Retrieving from jenkins: " + acceptedArtifact.getFileName() + " as " + this.fileName);
+
+                InputStream inputStream = acceptedBuild.details().downloadArtifact(acceptedArtifact);
+                File out = new File(getTempFolder() + File.separator + this.fileName);
+                out.delete(); // Delete from temp. folder.
+
+                ReadableByteChannel readableByteChannel = Channels.newChannel(inputStream);
+                FileOutputStream outputStream = new FileOutputStream(out);
+                outputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+
+                this.log("Successfully transferred " + artifactName);
+
+                this.downloadedFile = out;
+
+                outputStream.close();
+                readableByteChannel.close();
+                inputStream.close();
             }
-
-            Logger.getLogger().info("[Jenkins] Retrieving " + acceptedArtifact.getFileName() + " as " + this.fileName);
-
-            InputStream inputStream = acceptedBuild.details().downloadArtifact(acceptedArtifact);
-
-            File out = new File(getTempFolder() + File.separator + this.fileName);
-            if (out.exists()) {
-                Logger.getLogger().info("[Jenkins] Deleting from temporary folder " + out.getAbsolutePath() + " | Success:"
-                        + out.delete());
-            }
-
-            ReadableByteChannel readableByteChannel = Channels.newChannel(inputStream);
-            FileOutputStream outputStream = new FileOutputStream(out);
-            outputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-
-            Logger.getLogger().info("[Jenkins] Successful transfer.");
-
-            this.downloadedFile = out;
-
-            outputStream.close();
-            readableByteChannel.close();
-            inputStream.close();
 
         } catch (URISyntaxException | IOException | NullPointerException e) {
             e.printStackTrace();
             Conductor.shutdown(true);
         }
+    }
+    
+    private void log(String msg) {
+        Logger.getLogger().info("[Jenkins] " + msg);
     }
 }
