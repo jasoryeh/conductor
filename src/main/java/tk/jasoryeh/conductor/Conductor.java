@@ -175,6 +175,7 @@ public class Conductor extends Boot {
      * To be called to skip updates and other stuff.
      */
     public static void quickStart() {
+        Logger.getLogger().info("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         Logger.getLogger().info("Quickstart triggered, application update complete, starting conductor...");
 
         Conductor conductor = new Conductor();
