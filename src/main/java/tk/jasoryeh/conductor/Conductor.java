@@ -87,12 +87,12 @@ public class Conductor extends Boot {
         int response = -2;
 
         try {
-            if(conf.getLaunchType() == ServerConfig.LaunchType.PROCESS) {
+            if(conf.getLaunchType() == ServerConfig.LaunchType.CLASSLOADER) {
                 Logger.getLogger().info("Trying experimental method, falling back if fail.");
 
                 Logger.getLogger().info("Starting server... Waiting for completion.");
                 Experimental.clLoadMain(conf.getFileForLaunch());
-            } else if(conf.getLaunchType() == ServerConfig.LaunchType.CLASSLOADER) {
+            } else if(conf.getLaunchType() == ServerConfig.LaunchType.PROCESS) {
                 Logger.getLogger().info("Using ProcessBuilder method.");
 
                 String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
