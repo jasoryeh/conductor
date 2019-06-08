@@ -40,6 +40,17 @@ public class ServerJsonConfigProcessor {
 
         ServerConfig config = new ServerConfig(name, type, launchFile, launchOptions, overwrite, tree);
 
+        if(jsonObject.has("launchType")) {
+            String launchType = jsonObject.get("launchType").getAsString();
+            if(launchType.equalsIgnoreCase("process")) {
+                config.setLaunchType(ServerConfig.LaunchType.PROCESS);
+            } else if(launchType.equalsIgnoreCase("classloader")) {
+                config.setLaunchType(ServerConfig.LaunchType.CLASSLOADER);
+            } else {
+                throw new UnsupportedOperationException("Unknown launchType option " + launchType);
+            }
+        } // no else, defaults to process automagically
+
         if (!processTree(tree, config, "", true)) {
             Logger.getLogger().error("Something went wrong, shutting down.");
             new DebugException().printStackTrace();

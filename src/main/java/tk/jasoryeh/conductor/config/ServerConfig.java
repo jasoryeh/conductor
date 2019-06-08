@@ -2,6 +2,7 @@ package tk.jasoryeh.conductor.config;
 
 import com.google.gson.JsonObject;
 import lombok.Getter;
+import lombok.Setter;
 import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
 import tk.jasoryeh.conductor.util.Utility;
 
@@ -20,6 +21,9 @@ public class ServerConfig {
     private final boolean overwrite;
     @Getter
     private final JsonObject json;
+    @Getter
+    @Setter
+    private LaunchType launchType;
 
     public ServerConfig(String name, ServerJsonConfigProcessor.ServerType type, String launchFile, String launchOptions, boolean overwrite, JsonObject json) {
         this.name = name;
@@ -28,9 +32,18 @@ public class ServerConfig {
         this.launchOptions = launchOptions;
         this.overwrite = overwrite;
         this.json = json;
+
+        // Default to launchType of Process
+        this.launchType = LaunchType.PROCESS;
     }
 
     public File getFileForLaunch() {
         return new File(Utility.getCWD() + File.separator + launchFile);
+    }
+
+    public enum LaunchType {
+        PROCESS,
+        CLASSLOADER,
+        OTHER
     }
 }

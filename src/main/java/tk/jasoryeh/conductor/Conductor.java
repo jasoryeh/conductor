@@ -83,20 +83,17 @@ public class Conductor extends Boot {
      * @param obj Launcher configuration
      */
     public void executeLaunch(ServerConfig conf, JsonObject obj) {
-        try {
-            DateTime timeStart = DateTime.now();
-            int response = -2;
-            try {
-                if(true) throw new Exception("Let's skip this part..."); // Bukkit has trouble with this...
+        DateTime timeStart = DateTime.now();
+        int response = -2;
 
+        try {
+            if(conf.getLaunchType() == ServerConfig.LaunchType.PROCESS) {
                 Logger.getLogger().info("Trying experimental method, falling back if fail.");
 
                 Logger.getLogger().info("Starting server... Waiting for completion.");
                 Experimental.clLoadMain(conf.getFileForLaunch());
-
-            } catch(Exception e) {
+            } else if(conf.getLaunchType() == ServerConfig.LaunchType.CLASSLOADER) {
                 Logger.getLogger().info("Using ProcessBuilder method.");
-                e.printStackTrace();
 
                 String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
 
@@ -118,37 +115,41 @@ public class Conductor extends Boot {
                         .start();
                 Logger.getLogger().info("Started server... Waiting for completion of " + conf.getName());
                 response = process.waitFor();
-            }
-
-
-            DateTime timeEnd = DateTime.now();
-            Logger.getLogger().info("Process ended. Exit code " + response + (response == -2 ? "(possible internal exit code)" : ""));
-
-            Period difference = new Period(timeStart, timeEnd);
-
-            PeriodFormatter formatter = new PeriodFormatterBuilder()
-                    .appendYears().appendSuffix(" year, ", " years, ")
-                    .appendMonths().appendSuffix(" month, ", " months, ")
-                    .appendWeeks().appendSuffix(" week, ", " weeks, ")
-                    .appendDays().appendSuffix(" day, ", " days, ")
-                    .appendHours().appendSuffix(" hour, ", " hours, ")
-                    .appendMinutes().appendSuffix(" minute, ", " minutes, ")
-                    .appendSeconds().appendSuffix(" second", " seconds")
-                    .printZeroNever()
-                    .toFormatter();
-
-            String elapsed = formatter.print(difference);
-
-            Logger.getLogger().info("Ran for " + elapsed);
-            Logger.getLogger().info("Bye.");
-
-            if(response == 251) {
-                Logger.getLogger().info("Response code of 251 detected (restart)");
-                Logger.getLogger().info("Attempting restart.");
-                executeLaunch(conf, obj);
+            } else {
+                throw new UnsupportedOperationException("Launch type not supported.");
             }
         } catch(Exception e) {
+            // Catch everything?
+            Logger.getLogger().warn("Unknown error.");
             e.printStackTrace();
+        }
+
+
+        DateTime timeEnd = DateTime.now();
+        Logger.getLogger().info("Process ended. Exit code " + response + (response == -2 ? "(possible internal exit code)" : ""));
+
+        Period difference = new Period(timeStart, timeEnd);
+
+        PeriodFormatter formatter = new PeriodFormatterBuilder()
+                .appendYears().appendSuffix(" year, ", " years, ")
+                .appendMonths().appendSuffix(" month, ", " months, ")
+                .appendWeeks().appendSuffix(" week, ", " weeks, ")
+                .appendDays().appendSuffix(" day, ", " days, ")
+                .appendHours().appendSuffix(" hour, ", " hours, ")
+                .appendMinutes().appendSuffix(" minute, ", " minutes, ")
+                .appendSeconds().appendSuffix(" second", " seconds")
+                .printZeroNever()
+                .toFormatter();
+
+        String elapsed = formatter.print(difference);
+
+        Logger.getLogger().info("Ran for " + elapsed);
+        Logger.getLogger().info("Bye.");
+
+        if(response == 251) {
+            Logger.getLogger().info("Response code of 251 detected (restart)");
+            Logger.getLogger().info("Attempting restart.");
+            executeLaunch(conf, obj);
         }
     }
 
