@@ -71,7 +71,7 @@ public class Logger {
         String min = zdt.getMinute() + ""; min = (min.length() == 1) ? (0 + min) : (min);
         String sec = zdt.getSecond() + ""; sec = (sec.length() == 1) ? (0 + sec) : (sec);
 
-        String ns = zdt.getNano() + ""; ns = (ns.length() > 3) ? ns.substring(0, 2) : (ns);
+        String ns = zdt.getNano() + ""; ns = (ns.length() != 3) ? (ns.length() > 3 ? ns.substring(0, 2) : (ns.length() == 2 ? "0" : "00")) : ns;
 
         String tz = zdt.getZone().getId();
 

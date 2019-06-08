@@ -78,10 +78,11 @@ public class ServerJsonConfigProcessor {
      * @return success or not
      */
     private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents, boolean recursive) {
-        String path = Utility.getCWD() + File.separator +
-                (parents.equalsIgnoreCase("") ? "" : File.separator + parents + File.separator) + fileName;
-        File f = new File(path);
-        Logger.getLogger().debug(path);
+        Logger.getLogger().info(Logger.EMPTY);
+
+        File f = new File(Utility.getCWD() + File.separator +
+                (parents.equalsIgnoreCase("") ? "" : File.separator + parents + File.separator) + fileName);
+        Logger.getLogger().info("Now working on... " + f.getName());
 
         // Check if the file should be overwritten every startup
         boolean fileOverwrite = obj.get("overwrite") == null ? conf.isOverwrite() : obj.get("overwrite").getAsBoolean();
@@ -90,40 +91,42 @@ public class ServerJsonConfigProcessor {
             return true;
         }
 
+        // Try to delete, else warn about overwrite
         if(f.exists() && (conf.isOverwrite() && fileOverwrite)) {
             // Try deleting like a folder
             if(f.isDirectory()) {
                 if(!Utility.recursiveDelete(f)) {
-                    Logger.getLogger().error("[OVERWRITE] UNABLE TO DELETE DIRECTORY " + f.getAbsolutePath());
+                    Logger.getLogger().warn("[File|D] Unable to delete directory, this may be overwritten later. " + f.getAbsolutePath());
                 } else {
-                    Logger.getLogger().info("[OVERWRITE] OVERWRITE DIRECTORY: " + f.getAbsolutePath() + " (Deleted)");
+                    Logger.getLogger().info("[File|D] Deleted directory: " + f.getAbsolutePath() + " (poof)");
                 }
             } else {
                 if(!f.delete()) {
-                    Logger.getLogger().error("[OVERWRITE] UNABLE TO DELETE " + f.getAbsolutePath());
+                    Logger.getLogger().error("[File|D] Unable to delete file, this may be overwritten later. " + f.getAbsolutePath());
                 } else {
-                    Logger.getLogger().info("[OVERWRITE] OVERWRITE: " + f.getAbsolutePath() + " (Deleted)");
+                    Logger.getLogger().info("[File|D] Deleted file: " + f.getAbsolutePath() + " (poof)");
                 }
             }
         }
 
-        Logger.getLogger().info("[WRITE] Create " + f.getAbsolutePath());
+        Logger.getLogger().info("[File|W] Create " + f.getAbsolutePath());
 
         if(obj.get("type").getAsString().equalsIgnoreCase("folder")) {
             if (!f.mkdir()) {
-                Logger.getLogger().error("Unable to create directory " + f.getAbsolutePath());
-                Logger.getLogger().error("Trying to continue anyways");
+                Logger.getLogger().error("[File|W] Unable to create directory " + f.getAbsolutePath());
+                Logger.getLogger().error("[File|W] Trying to continue anyways");
             }
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 if(obj.get("contents") != null) {
-                    Logger.getLogger().debug("Scanning content configuration for " + f.getAbsolutePath());
+                    Logger.getLogger().info("Scanning content configuration for " + f.getAbsolutePath() + " " + fileName + "]");
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("tree")) {
-                            Logger.getLogger().debug("Processing configuration...");
+                            Logger.getLogger().info("Processing configuration... [" + fileName + "]");
                             processTree(contents.getValue().getAsJsonObject(), conf, parents + File.separator + fileName, recursive);
+                            Logger.getLogger().info("Done processing [" + fileName + "]");
                         }
                     }
                 }
@@ -148,12 +151,12 @@ public class ServerJsonConfigProcessor {
                             ud.download();
                             // Unzip
                             if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
-                                Logger.getLogger().info("Unzipping to" + f.getAbsolutePath());
+                                Logger.getLogger().info("[File|W/UZ] Unzipping to" + f.getAbsolutePath());
                                 f.mkdirs();
                                 ZipUtil.unpack(ud.getDownloadedFile(), f);
                                 System.gc();
                             } else {
-                                Logger.getLogger().info("Copying files to " + f.toPath());
+                                Logger.getLogger().info("[File|W] Copying files to " + f.toPath());
                                 Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
                             ud = null;
