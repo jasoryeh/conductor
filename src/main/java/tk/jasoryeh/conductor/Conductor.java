@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import tk.jasoryeh.conductor.config.Configuration;
+import tk.jasoryeh.conductor.config.LauncherConfig;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.log.Logger;
@@ -54,9 +55,10 @@ public class Conductor extends Boot {
 
     public void onEnable() {
         this.config = new Configuration("serverlauncher.properties", true);
-        this.config.reload();
 
-        JsonObject obj = LauncherPropertiesProcessor.process(this.config);
+        LauncherConfig lC = LauncherPropertiesProcessor.buildConfig(this.config);
+
+        JsonObject obj = LauncherPropertiesProcessor.process(lC);
 
         if(obj == null) {
             Logger.getLogger().error("Unable to process launcher properties");
