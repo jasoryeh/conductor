@@ -2,6 +2,7 @@ package tk.jasoryeh.conductor.processor;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import org.javalite.http.Get;
 import org.javalite.http.Http;
 import tk.jasoryeh.conductor.Conductor;
@@ -20,12 +21,14 @@ import java.io.*;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LauncherPropertiesProcessor {
     public static LauncherConfig buildConfig(Configuration configuration) {
@@ -81,13 +84,10 @@ public class LauncherPropertiesProcessor {
 
             StringBuilder builder = new StringBuilder();
 
-            try (Scanner scanner = new Scanner(serverConfig)) {
-                while(scanner.hasNextLine()) {
-                    builder.append(scanner.nextLine()).append(System.lineSeparator());
-                }
 
-                return parser.parse(scanner.toString()).getAsJsonObject();
-            } catch(FileNotFoundException e) {
+            try {
+                return parser.parse(new String(Files.readAllBytes(serverConfig.toPath()), StandardCharsets.UTF_8)).getAsJsonObject();
+            } catch(IOException e) {
                 e.printStackTrace();
 
                 // Try to copy a new one.
