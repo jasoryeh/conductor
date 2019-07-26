@@ -33,6 +33,10 @@ public class LauncherPropertiesProcessor {
 
         boolean selfUpdate = (configuration.entryExists("selfUpdate") ? Boolean.valueOf(configuration.getString("selfUpdate")) : false);
 
+        boolean passParams = Boolean.valueOf(configuration.getString("bootUpdateWithSameParams"));
+
+        int currentVer = Integer.valueOf(configuration.getString("selfUpdateCurrentVersion"));
+
         LauncherConfig.LauncherJenkinsUserDetailsConfig launcherJenkinsUserDetailsConfig = new LauncherConfig.LauncherJenkinsUserDetailsConfig(
                 configuration.getString("jenkinsHost"),
                 configuration.getString("jenkinsUsername"),
@@ -43,6 +47,8 @@ public class LauncherPropertiesProcessor {
                 configuration.getString("name"),
                 offline,
                 (offline ? configuration.getString("offlineConfig") : configuration.getString("retrieveConfig")),
+                passParams,
+                currentVer,
                 launcherJenkinsUserDetailsConfig,
                 new LauncherConfig.LauncherConductorUpdateDetailsConfig(
                         selfUpdate,

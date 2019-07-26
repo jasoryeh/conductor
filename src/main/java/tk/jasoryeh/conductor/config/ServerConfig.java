@@ -25,7 +25,8 @@ public class ServerConfig {
     @Setter
     private LaunchType launchType;
 
-    public ServerConfig(String name, ServerJsonConfigProcessor.ServerType type, String launchFile, String launchOptions, boolean overwrite, JsonObject json) {
+    public ServerConfig(String name, ServerJsonConfigProcessor.ServerType type, String launchFile,
+                        String launchOptions, boolean overwrite, JsonObject json) {
         this.name = name;
         this.type = type;
         this.launchFile = launchFile;

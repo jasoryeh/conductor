@@ -14,7 +14,7 @@ public class LauncherConfig {
     @Getter
     private final LauncherConductorUpdateDetailsConfig selfUpdateConfig;
 
-    public LauncherConfig(String name, boolean offline, String cnfPathOrUrl,
+    public LauncherConfig(String name, boolean offline, String cnfPathOrUrl, boolean passParams, int currentVersion,
                           LauncherJenkinsUserDetailsConfig jenkinsConfig,
                           LauncherConductorUpdateDetailsConfig selfUpdateConfig) {
 
