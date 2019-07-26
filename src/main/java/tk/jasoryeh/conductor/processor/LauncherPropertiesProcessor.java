@@ -37,10 +37,20 @@ public class LauncherPropertiesProcessor {
 
         int currentVer = Integer.valueOf(configuration.getString("selfUpdateCurrentVersion"));
 
-        LauncherConfig.LauncherJenkinsUserDetailsConfig launcherJenkinsUserDetailsConfig = new LauncherConfig.LauncherJenkinsUserDetailsConfig(
+        LauncherConfig.LauncherJenkinsUserDetailsConfig launcherJenkinsDetails = new LauncherConfig.LauncherJenkinsUserDetailsConfig(
                 configuration.getString("jenkinsHost"),
                 configuration.getString("jenkinsUsername"),
                 configuration.getString("jenkinsPasswordOrToken")
+        );
+
+        boolean useSelfUpdateDetails = (configuration.entryExists("selfUpdateHost")
+                && configuration.entryExists("selfUpdateUsername")
+                && configuration.entryExists("selfUpdatePasswordOrToken"));
+
+        LauncherConfig.LauncherJenkinsUserDetailsConfig selfUpdateDetails = new LauncherConfig.LauncherJenkinsUserDetailsConfig(
+                configuration.getString("selfUpdateHost"),
+                configuration.getString("selfUpdateUsername"),
+                configuration.getString("selfUpdatePasswordOrToken")
         );
 
         return new LauncherConfig(
@@ -49,10 +59,10 @@ public class LauncherPropertiesProcessor {
                 (offline ? configuration.getString("offlineConfig") : configuration.getString("retrieveConfig")),
                 passParams,
                 currentVer,
-                launcherJenkinsUserDetailsConfig,
+                launcherJenkinsDetails,
                 new LauncherConfig.LauncherConductorUpdateDetailsConfig(
                         selfUpdate,
-                        launcherJenkinsUserDetailsConfig,
+                        useSelfUpdateDetails ? selfUpdateDetails : launcherJenkinsDetails,
                         selfUpdate ? configuration.getString("selfUpdateJob") : "conductor",
                         selfUpdate ? Integer.valueOf(configuration.getString("selfUpdateVersion")) : -1,
                         selfUpdate ? configuration.getString("selfUpdateArtifactName") : "conductor-1.0-SNAPSHOT-jar-with-dependencies.jar"
