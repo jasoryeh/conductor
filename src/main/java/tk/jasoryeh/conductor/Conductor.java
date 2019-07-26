@@ -40,8 +40,6 @@ public class Conductor extends Boot {
         Logger.getLogger().debug("File separator - " + File.separator);
         Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
         Logger.getLogger().info("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
-
-        Logger.getLogger().info("Working...");
     }
 
     private Configuration config;
@@ -164,6 +162,12 @@ public class Conductor extends Boot {
         Logger.getLogger().info("bye.");
     }
 
+    /**
+     * Reloads conductor
+     *  -- Disables
+     *  -- Reloads configuration
+     *  -- Reenables (refresh files)
+     */
     public void reload() {
         this.onDisable();
         this.config.reload();
@@ -180,9 +184,11 @@ public class Conductor extends Boot {
         Conductor conductor = new Conductor();
 
         // Run
+        Logger.getLogger().info("Working...");
         conductor.onEnable();
 
         // Finish, clean up
+        Logger.getLogger().info("Shutting down...");
         conductor.onDisable();
     }
 }
