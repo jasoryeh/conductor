@@ -42,8 +42,6 @@ public class Conductor extends Boot {
         Logger.getLogger().info("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
 
         Logger.getLogger().info("Working...");
-
-        this.onEnable();
     }
 
     private Configuration config;
@@ -176,9 +174,15 @@ public class Conductor extends Boot {
      * To be called to skip updates and other stuff.
      */
     public static void quickStart() {
-        Logger.getLogger().info("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
         Logger.getLogger().info("Quickstart triggered, application update complete, starting conductor...");
 
+        // Setup
         Conductor conductor = new Conductor();
+
+        // Run
+        conductor.onEnable();
+
+        // Finish, clean up
+        conductor.onDisable();
     }
 }
