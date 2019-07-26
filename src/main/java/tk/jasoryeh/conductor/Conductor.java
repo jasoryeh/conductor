@@ -26,6 +26,8 @@ public class Conductor extends Boot {
     @Setter
     private static Conductor instance;
 
+    private LauncherConfig launcherConfig;
+
     /**
      * With the creation of this object, we auto call onEnable and start the process
      */
@@ -56,9 +58,9 @@ public class Conductor extends Boot {
     public void onEnable() {
         this.config = new Configuration("serverlauncher.properties", true);
 
-        LauncherConfig lC = LauncherPropertiesProcessor.buildConfig(this.config);
+        this.launcherConfig = LauncherPropertiesProcessor.buildConfig(this.config);
 
-        JsonObject obj = LauncherPropertiesProcessor.process(lC);
+        JsonObject obj = LauncherPropertiesProcessor.process(this.launcherConfig);
 
         if(obj == null) {
             Logger.getLogger().error("Unable to process launcher properties");
