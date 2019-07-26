@@ -54,7 +54,6 @@ public class Logger {
         say(getMessage(DEBUGPREFIX, objects));
     }
 
-
     /**
      * Returns a full date and time zone string for use in the log message
      * @return String with brackets to be used in the message
@@ -86,7 +85,7 @@ public class Logger {
      * Quick S.O.P.
      * @param say Thing to print out
      */
-    private static void say(Object say) {
+    protected static void say(Object say) {
         System.out.println(say);
     }
 
@@ -96,7 +95,7 @@ public class Logger {
      * @param objects Things to say in the message returned
      * @return Compiled message
      */
-    private String getMessage(String prefix, Object... objects) {
+    protected String getMessage(String prefix, Object... objects) {
         StringJoiner joiner = new StringJoiner(" ");
         for(Object o : objects) {
             joiner.add(String.valueOf(o));
