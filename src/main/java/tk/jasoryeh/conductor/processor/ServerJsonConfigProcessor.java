@@ -11,7 +11,9 @@ import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
+import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.util.FileUtils;
 import tk.jasoryeh.conductor.util.Utility;
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -105,19 +107,13 @@ public class ServerJsonConfigProcessor {
         // Try to delete, else warn about overwrite
         if(f.exists() && (conf.isOverwrite() && fileOverwrite)) {
             // Try deleting like a folder
-            if(f.isDirectory()) {
-                if(!Utility.recursiveDelete(f)) {
-                    Logger.getLogger().warn("[File|D] Unable to delete directory, this may be overwritten later. " + f.getAbsolutePath());
-                } else {
-                    Logger.getLogger().info("[File|D] Deleted directory: " + f.getAbsolutePath() + " (poof)");
-                }
+            if(FileUtils.delete(f)) {
+                Logger.getLogger().info("[File|D] Deleted directory: " + f.getAbsolutePath() + " (poof)");
             } else {
-                if(!f.delete()) {
-                    Logger.getLogger().error("[File|D] Unable to delete file, this may be overwritten later. " + f.getAbsolutePath());
-                } else {
-                    Logger.getLogger().info("[File|D] Deleted file: " + f.getAbsolutePath() + " (poof)");
-                }
+                Logger.getLogger().warn("[File|D] Unable to delete directory, this may be overwritten later. " + f.getAbsolutePath());
             }
+        } else {
+            L.i("[File|D] Not deleting (no overwrite): " + f.getAbsolutePath());
         }
 
         Logger.getLogger().info("[File|W] Create " + f.getAbsolutePath());

@@ -10,7 +10,6 @@ import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.processor.LauncherPropertiesProcessor;
 import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
-import tk.jasoryeh.conductor.scheduler.Threads;
 import tk.jasoryeh.conductor.util.Experimental;
 import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
