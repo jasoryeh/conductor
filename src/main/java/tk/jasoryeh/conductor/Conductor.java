@@ -7,6 +7,7 @@ import tk.jasoryeh.conductor.config.Configuration;
 import tk.jasoryeh.conductor.config.LauncherConfig;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.downloaders.Downloader;
+import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.processor.LauncherPropertiesProcessor;
 import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
@@ -71,6 +72,17 @@ public class Conductor extends Boot {
         if(conf == null) {
             Logger.getLogger().error("Unable to process server properties");
             shutdown(true);
+        }
+
+        int initialThreads = ServerJsonConfigProcessor.retrieveThreads.size();
+        while (!ServerJsonConfigProcessor.retrieveThreads.isEmpty()) {
+            try {
+                L.i("[Downloading] Waiting for all downloads to finish... " + ServerJsonConfigProcessor.retrieveThreads.size() + "/" + initialThreads);
+                Thread.sleep(5000);
+            } catch(InterruptedException e) {
+                // Don't start without everything!
+                Conductor.shutdown(true);
+            }
         }
 
         executeLaunch(conf, obj);

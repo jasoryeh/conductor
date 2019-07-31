@@ -7,12 +7,14 @@ import tk.jasoryeh.conductor.Conductor;
 import tk.jasoryeh.conductor.config.Configuration;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.debug.DebugException;
+import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
 import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.util.Environment;
 import tk.jasoryeh.conductor.util.FileUtils;
 import tk.jasoryeh.conductor.util.Utility;
 import org.zeroturnaround.zip.ZipUtil;
@@ -21,6 +23,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ServerJsonConfigProcessor {
     /**
@@ -219,64 +222,43 @@ public class ServerJsonConfigProcessor {
                     }
                 }
 
+                Downloader downloader;
+
                 switch(type) {
                     case URL:
-                        try {
-                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
-                            ud.download();
+                        downloader = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
 
-                            Files.copy(
-                                    ud.getDownloadedFile().toPath(),
-                                    f.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                            // ... move on
-                        } catch(RetrievalException | IOException re) {
-                            re.printStackTrace();
-                            Conductor.shutdown(true);
-                        }
                         break;
                     case JENKINS:
-                        try {
-                            Configuration config = Conductor.getInstance().getConfig();
-                            boolean endNoAuth = !config.entryExists("jenkinsHost")
-                                    || !config.entryExists("jenkinsUsername")
-                                    || !config.entryExists("jenkinsPasswordOrToken");
-                            if(!retrieval.get("auth").getAsBoolean() && endNoAuth) {
-                                Logger.getLogger().error("Jenkins Authentication not present, not continuing.");
-                                Conductor.shutdown(true);
-                            }
-
-                            JsonObject jenkinsAuth = retrieval.get("jenkinsAuth").getAsJsonObject();
-
-                            boolean useSpecifiedAuth = retrieval.get("auth").getAsBoolean();
-
-                            boolean endNoInfo = (jenkinsAuth.get("job") == null) || (jenkinsAuth.get("artifact") == null) || (jenkinsAuth.get("number") == null);
-                            if(endNoInfo) {
-                                Logger.getLogger().error("Jenkins artifact information not present, not continuing.");
-                                Conductor.shutdown(true);
-                            }
-
-                            String job = jenkinsAuth.get("job").getAsString();
-                            String artifact = jenkinsAuth.get("artifact").getAsString();
-                            int number = jenkinsAuth.get("number").getAsInt();
-
-                            String host = useSpecifiedAuth ? jenkinsAuth.get("host").getAsString() : config.getString("jenkinsHost");
-                            String username = useSpecifiedAuth ? (jenkinsAuth.get("username") == null ? "" : jenkinsAuth.get("username").getAsString()) : config.getString("jenkinsUsername");
-                            String passwordOrToken = useSpecifiedAuth ? (jenkinsAuth.get("passwordOrToken") == null ? "" : jenkinsAuth.get("passwordOrToken").getAsString()) : config.getString("jenkinsPasswordOrToken");
-
-
-                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(host, job, artifact, number, username, passwordOrToken, fileName, true, new Credentials());
-                            jenkinsDownloader.download();
-
-                            Files.copy(
-                                    jenkinsDownloader.getDownloadedFile().toPath(),
-                                    f.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-
-                            //... move on
-                        } catch(RetrievalException | IOException re) {
-                            re.printStackTrace();
+                        Configuration config = Conductor.getInstance().getConfig();
+                        boolean endNoAuth = !config.entryExists("jenkinsHost")
+                                || !config.entryExists("jenkinsUsername")
+                                || !config.entryExists("jenkinsPasswordOrToken");
+                        if(!retrieval.get("auth").getAsBoolean() && endNoAuth) {
+                            Logger.getLogger().error("Jenkins Authentication not present, not continuing.");
                             Conductor.shutdown(true);
                         }
+
+                        JsonObject jenkinsAuth = retrieval.get("jenkinsAuth").getAsJsonObject();
+
+                        boolean useSpecifiedAuth = retrieval.get("auth").getAsBoolean();
+
+                        boolean endNoInfo = (jenkinsAuth.get("job") == null) || (jenkinsAuth.get("artifact") == null) || (jenkinsAuth.get("number") == null);
+                        if(endNoInfo) {
+                            Logger.getLogger().error("Jenkins artifact information not present, not continuing.");
+                            Conductor.shutdown(true);
+                        }
+
+                        String job = jenkinsAuth.get("job").getAsString();
+                        String artifact = jenkinsAuth.get("artifact").getAsString();
+                        int number = jenkinsAuth.get("number").getAsInt();
+
+                        String host = useSpecifiedAuth ? jenkinsAuth.get("host").getAsString() : config.getString("jenkinsHost");
+                        String username = useSpecifiedAuth ? (jenkinsAuth.get("username") == null ? "" : jenkinsAuth.get("username").getAsString()) : config.getString("jenkinsUsername");
+                        String passwordOrToken = useSpecifiedAuth ? (jenkinsAuth.get("passwordOrToken") == null ? "" : jenkinsAuth.get("passwordOrToken").getAsString()) : config.getString("jenkinsPasswordOrToken");
+
+                        downloader = new JenkinsDownloader(host, job, artifact, number, username, passwordOrToken, fileName, true, new Credentials());
+
                         break;
                     case SPECIFIED:
                         // Specified not supposed to land here
@@ -285,10 +267,44 @@ public class ServerJsonConfigProcessor {
                         // Other types
                         throw new UnsupportedOperationException();
                 }
+
+                Environment allowThreading = Environment.get("allowDLThreading");
+
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            downloader.download();
+                            Files.copy(
+                                    downloader.getDownloadedFile().toPath(),
+                                    f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        } catch (IOException | RetrievalException e) {
+                            L.e("Unable to download/copy " + downloader.getFileName());
+                            e.printStackTrace();
+                            Conductor.shutdown(true);
+                        }
+
+                        retrieveThreads.remove(Thread.currentThread());
+                    }
+                });
+
+                if(allowThreading.exists() && allowThreading.getAsBoolean()) {
+                    thread.start();
+
+                    retrieveThreads.add(thread);
+                } else {
+                    thread.run();
+                }
             }
         }
         return true;
     }
+
+    // exp
+
+    public static CopyOnWriteArrayList<Thread> retrieveThreads = new CopyOnWriteArrayList<>();
+
+    // end
 
     public enum RetrieveType {
         URL("url"), JENKINS("jenkins"), SPECIFIED("specified");
