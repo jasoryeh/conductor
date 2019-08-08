@@ -19,6 +19,8 @@ import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 public class Conductor extends Boot {
     @Getter
@@ -87,6 +89,10 @@ public class Conductor extends Boot {
 
         try {
             if(conf.getLaunchType() == ServerConfig.LaunchType.CLASSLOADER) {
+                if(conf.getType() != ServerJsonConfigProcessor.ServerType.JAVA) {
+                    throw new UnsupportedOperationException("We cannot run non-java applications via class loader.");
+                }
+
                 Logger.getLogger().info("Trying experimental method, falling back if fail.");
 
                 Logger.getLogger().info("Starting server... Waiting for completion.");
@@ -96,30 +102,33 @@ public class Conductor extends Boot {
 
                 String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
 
+                StringBuilder params = new StringBuilder();
+                if(obj.has("launchWithSameParams") && obj.get("launchWithSameParams").getAsBoolean()) {
+                    params.append(
+                            String.join(" ", Utility.getJVMArguments())
+                    ).append(" ");
+                }
+                params.append("-DconductorUpdated=yes -DstartedWithConductor=yes");
+
+
                 Logger.getLogger().debug("-> Process configuration");
-                Logger.getLogger().debug(String.join(" ", Utility.getJVMArguments()));
-                Logger.getLogger().debug(conf.getType().getEquivalent(),
-                        String.join(" ", Utility.getJVMArguments()), "-jar", program);
+                Logger.getLogger().debug(params.toString(), program);
                 Logger.getLogger().debug("-> Starting process...");
 
-                String parameters = obj.get("launchWithSameParams") != null ? obj.get("launchWithSameParams").getAsBoolean() ? String.join(" ", Utility.getJVMArguments()) : "" : "";
-                parameters += (parameters.equalsIgnoreCase("") ? "" : " ") + "-DconductorUpdated=yes -DstartedWithConductor=yes";
-
                 ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
-                        parameters, "-jar", program);
-                Process process;
-                process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
+                        params.toString(), conf.getType().getParams(), program);
+                Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                         .redirectInput(ProcessBuilder.Redirect.INHERIT)
                         .start();
+
                 Logger.getLogger().info("Started server... Waiting for completion of " + conf.getName());
                 response = process.waitFor();
             } else {
                 throw new UnsupportedOperationException("Launch type not supported.");
             }
-        } catch(Exception e) {
-            // Catch everything?
-            Logger.getLogger().warn("Unknown error.");
+        } catch(IOException | InterruptedException | InvocationTargetException | NoSuchMethodException | IllegalAccessException | ClassNotFoundException e) {
+            Logger.getLogger().warn("An error occurred while starting the programs.");
             e.printStackTrace();
         }
 
@@ -143,7 +152,7 @@ public class Conductor extends Boot {
         String elapsed = formatter.print(difference);
 
         Logger.getLogger().info("Ran for " + elapsed);
-        Logger.getLogger().info("Bye.");
+        Logger.getLogger().info("Shut down.");
 
         if(response == 251) {
             Logger.getLogger().info("Response code of 251 detected (restart)");

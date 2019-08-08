@@ -301,13 +301,20 @@ public class ServerJsonConfigProcessor {
         }
     }
     public enum ServerType {
-        JAVA("java");
+        JAVA("java", "-jar"),
+        PYTHON("python", ""),
+        PYTHON3("python3", ""),
+        PYTHON2("python2", ""),
+        NODEJS("node", "");
 
         @Getter
         private final String equivalent;
+        @Getter
+        private final String params;
 
-        ServerType(String equivalent) {
+        ServerType(String equivalent, String params) {
             this.equivalent = equivalent;
+            this.params = params;
         }
     }
 }
