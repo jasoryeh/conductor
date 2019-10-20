@@ -121,6 +121,7 @@ public class Conductor extends Boot {
 
                 ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
                         params.toString(), conf.getType().getParams(), program);
+                Logger.getLogger().debug(String.join(" ", processBuilder.command().toArray(new String[]{"Command: "})));
                 Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                         .redirectInput(ProcessBuilder.Redirect.INHERIT)
