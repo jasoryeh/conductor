@@ -104,9 +104,13 @@ public class Conductor extends Boot {
 
                 StringBuilder params = new StringBuilder();
                 if(obj.has("launchWithSameParams") && obj.get("launchWithSameParams").getAsBoolean()) {
-                    params.append(
-                            String.join(" ", Utility.getJVMArguments())
-                    ).append(" ");
+                    for (String jvmArgument : Utility.getJVMArguments()) {
+                        params.append(jvmArgument).append(" ");
+                    }
+                }
+                if(obj.has("launchOptions")) {
+                    String launchOptions = obj.get("launchOptions").getAsString();
+                    params.append(launchOptions).append(" ");
                 }
                 params.append("-DconductorUpdated=yes -DstartedWithConductor=yes");
 
