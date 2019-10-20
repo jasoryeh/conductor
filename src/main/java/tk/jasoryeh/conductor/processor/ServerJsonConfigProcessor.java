@@ -33,7 +33,7 @@ public class ServerJsonConfigProcessor {
         ServerType type = ServerType.valueOf(jsonObject.get("type").getAsString().toUpperCase());
 
         String launchFile = jsonObject.get("launch").getAsString();
-        String launchOptions = jsonObject.get("launchOptions").getAsString();
+        String launchOptions = jsonObject.has("launchOptions") ? jsonObject.get("launchOptions").getAsString() : "";
 
         boolean overwrite = jsonObject.get("overwrite").getAsBoolean();
 
