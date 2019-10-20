@@ -205,6 +205,12 @@ public class Conductor extends Boot {
         Logger.getLogger().info("Quickstart triggered, application update complete, starting conductor...");
         parentLoader = parLoader;
 
+        for (String jvmArgument : Utility.getJVMArguments()) {
+            if(jvmArgument.toLowerCase().startsWith("-xms") || jvmArgument.toLowerCase().startsWith("-xmx")) {
+                Logger.getLogger().warn("If this is running within docker, -xms and -xmx is not encouraged to be used.");
+            }
+        }
+
         // Setup
         Conductor conductor = new Conductor();
 
