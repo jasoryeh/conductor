@@ -191,11 +191,19 @@ public class Conductor extends Boot {
         this.onEnable();
     }
 
+    public static ClassLoader parentLoader;
+
+    public static void quickStart() {
+        Logger.getLogger().info("Old quick start! Please update your conductor!");
+        quickStart(null);
+    }
+
     /**
      * To be called to skip updates and other stuff.
      */
-    public static void quickStart() {
+    public static void quickStart(ClassLoader parLoader) {
         Logger.getLogger().info("Quickstart triggered, application update complete, starting conductor...");
+        parentLoader = parLoader;
 
         // Setup
         Conductor conductor = new Conductor();

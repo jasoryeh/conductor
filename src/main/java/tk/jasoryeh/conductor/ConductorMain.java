@@ -144,7 +144,16 @@ public class ConductorMain {
                 }
 
                 // Run. - also waits for completion.. i think
-                conductorClass.getMethod("quickStart").invoke(null);
+                try {
+                    conductorClass.getMethod("quickStart").invoke(ConductorMain.class.getClassLoader());
+                } catch(Exception e) {
+                    try {
+                        conductorClass.getMethod("quickStart").invoke(null);
+                    } catch(Exception er) {
+                        e.printStackTrace();
+                        er.printStackTrace();
+                    }
+                }
             } catch (ClassNotFoundException e) {
                 // Invalid jar configuration! No quickstart/not a jar!
                 Logger.getLogger().error("Invalid jar file, falling back to Process!");
