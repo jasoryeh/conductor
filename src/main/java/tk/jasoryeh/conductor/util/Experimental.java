@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.jar.JarFile;
 
 public class Experimental {
@@ -22,9 +24,10 @@ public class Experimental {
 
         JarFile jar = new JarFile(jarFile);
 
-        //URLClassLoader customLoader = new URLClassLoader(new URL[] {jarFile.toURI().toURL()}, null);
-        ClassLoader classLoader = Conductor.parentLoader != null ?
-                Conductor.parentLoader : Conductor.getInstance().getClass().getClassLoader();
+        // Custom loader
+        URLClassLoader classLoader = new URLClassLoader(new URL[] {jarFile.toURI().toURL()}, null);
+        //ClassLoader classLoader = Conductor.parentLoader != null ?
+        //        Conductor.parentLoader : Conductor.getInstance().getClass().getClassLoader();
 
         String mainClassPath = jar.getManifest().getMainAttributes().getValue("Main-Class");
 
