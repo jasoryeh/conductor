@@ -24,6 +24,9 @@ public class ServerConfig {
     @Getter
     @Setter
     private LaunchType launchType;
+    @Getter
+    @Setter
+    private boolean skipLaunch;
 
     public ServerConfig(String name, ServerJsonConfigProcessor.ServerType type, String launchFile,
                         String launchOptions, boolean overwrite, JsonObject json) {
@@ -33,6 +36,8 @@ public class ServerConfig {
         this.launchOptions = launchOptions;
         this.overwrite = overwrite;
         this.json = json;
+
+        this.skipLaunch = false;
 
         // Default to launchType of Process
         this.launchType = LaunchType.PROCESS;

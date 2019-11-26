@@ -84,6 +84,11 @@ public class Conductor extends Boot {
      * @param obj Launcher configuration
      */
     public void executeLaunch(ServerConfig conf, JsonObject obj) {
+        if(conf.isSkipLaunch()) {
+            Logger.getLogger().info("Skipping launch... Updater done. (skipLaunch)");
+            return;
+        }
+
         DateTime timeStart = DateTime.now();
         int response = -2;
 

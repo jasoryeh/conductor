@@ -37,10 +37,13 @@ public class ServerJsonConfigProcessor {
 
         boolean overwrite = jsonObject.get("overwrite").getAsBoolean();
 
+        boolean skipLaunch = jsonObject.has("skipLaunch") && jsonObject.get("skipLaunch").getAsBoolean();
+
         // Files
         JsonObject tree = jsonObject.get("tree").getAsJsonObject();
 
         ServerConfig config = new ServerConfig(name, type, launchFile, launchOptions, overwrite, tree);
+        config.setSkipLaunch(skipLaunch);
 
         if(jsonObject.has("launchType")) {
             String launchType = jsonObject.get("launchType").getAsString();
@@ -49,7 +52,7 @@ public class ServerJsonConfigProcessor {
             } else if(launchType.equalsIgnoreCase("classloader")) {
                 config.setLaunchType(ServerConfig.LaunchType.CLASSLOADER);
             } else {
-                throw new UnsupportedOperationException("Unknown launchType option " + launchType);
+                throw new UnsupportedOperationException("Unknown launch type option " + launchType);
             }
         } // no else, defaults to process automagically
 
