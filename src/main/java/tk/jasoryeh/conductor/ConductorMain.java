@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.function.BiConsumer;
 
 public class ConductorMain {
 
@@ -64,12 +65,19 @@ public class ConductorMain {
     private static boolean attemptUpdate() {
         final String UPDATEPREFIX = "UPDATE";
 
+        // Load the configuration
+        L.i("Detected launcher properties: ");
+        Configuration configuration = new Configuration("serverlauncher.properties", true);
+        configuration.getRawProperties().forEach(new BiConsumer<Object, Object>() {
+            @Override
+            public void accept(Object o, Object o2) {
+                L.s(UPDATEPREFIX, "[PROPERTY]", o, "-", o2);
+            }
+        });
+        //
+
         L.s(UPDATEPREFIX, "Attempting to retrieve latest update of conductor!");
 
-        // Load the configuration
-        Configuration configuration = new Configuration("serverlauncher.properties", true);
-
-        //
         boolean selfUpdate = configuration.entryExists("selfUpdate") && Boolean.valueOf(configuration.getString("selfUpdate"));
         boolean valuesExist = configuration.entryExists("selfUpdateJob") && configuration.entryExists("selfUpdateVersion")
                 && configuration.entryExists("selfUpdateArtifactName") && configuration.entryExists("selfUpdateHost")

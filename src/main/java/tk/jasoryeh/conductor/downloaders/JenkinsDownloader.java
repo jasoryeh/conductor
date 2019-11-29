@@ -84,13 +84,15 @@ public class JenkinsDownloader extends Downloader {
     @Override
     public void download() throws RetrievalException {
         try {
-            this.jenkins = !username.equals("") ? new JenkinsServer(new URI(this.host), this.username, this.passwordOrToken) : new JenkinsServer(new URI(this.host));
+            this.jenkins = !username.equals("") ? // is anonymous?
+                    new JenkinsServer(new URI(this.host), this.username, this.passwordOrToken)
+                    : new JenkinsServer(new URI(this.host));
 
             Job job = this.jenkins.getJobs().get(this.job);
 
             Artifact acceptedArtifact = null;
             Build acceptedBuild = null;
-            if (number == -1) {
+            if (number == -1) { // latest
                 // Latest
                 for (Artifact artifact : job.details().getLastSuccessfulBuild().details().getArtifacts()) {
                     this.log("Found artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());
@@ -101,7 +103,7 @@ public class JenkinsDownloader extends Downloader {
                         break;
                     }
                 }
-            } else {
+            } else { // select job
                 // Specified job run number
                 for (Artifact artifact : job.details().getBuildByNumber(this.number).details().getArtifacts()) {
                     this.log("Found artifact | " + artifact.getFileName() + " | " + artifact.getDisplayPath());

@@ -292,13 +292,18 @@ public class ServerJsonConfigProcessor {
                                 jUser = jenkinsAuth.get("username").getAsString();
                                 jPassOrToken = jenkinsAuth.get("passwordOrToken").getAsString();
                             } else {
-                                if((retrieval.has("auth") && !retrieval.get("auth").getAsBoolean())
-                                        || !retrieval.has("auth")) {
-                                    jHost = "";
+                                Configuration config = Conductor.getInstance().getConfig();
+                                if(retrieval.has("auth") && !retrieval.get("auth").getAsBoolean()) {
+                                    if(jenkinsAuth.has("host")) {
+                                        jHost = jenkinsAuth.get("host").getAsString();
+                                    } else if (config.entryExists("jenkinsHost")) {
+                                        jHost = config.getString("jenkinsHost");
+                                    } else {
+                                        jHost = "http://127.0.0.1";
+                                    }
                                     jUser = "";
                                     jPassOrToken = "";
                                 } else {
-                                    Configuration config = Conductor.getInstance().getConfig();
                                     if(config.entryExists("jenkinsHost") && config.entryExists("jenkinsUsername")
                                             && config.entryExists("jenkinsPasswordOrToken")) {
                                         jHost = config.getString("jenkinHost");
