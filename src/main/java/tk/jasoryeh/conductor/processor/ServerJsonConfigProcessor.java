@@ -239,7 +239,7 @@ public class ServerJsonConfigProcessor {
 
                 Credentials credentials = new Credentials();
                 Credentials.CredentialType ct = Credentials.CredentialType
-                        .valueOf((retrieval.has("requestType") ? "DEFAULT" : retrieval.get("requestType").getAsString()));
+                        .valueOf((!retrieval.has("requestType") ? "DEFAULT" : retrieval.get("requestType").getAsString()));
 
                 if(retrieval.get("authDetails") != null) {
                     for (Map.Entry<String, JsonElement> authDetails : retrieval.get("authDetails").getAsJsonObject().entrySet()) {
