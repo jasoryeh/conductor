@@ -31,7 +31,8 @@ public class ConductorMain {
 
         // If no update (meaning no conductorUpdated system property is set), we try to update.
         if(conductorUpdated == null && attemptUpdate()) {
-            Conductor.shutdown(false); // Not updated, but we successfully completed update. Shutdown quietly.
+            Logger.getLogger().info("Goodbye.");
+            Conductor.shutdown(false); // Not updated, but we tried update already. Shutdown quietly.
         }
 
         // Go back to current version

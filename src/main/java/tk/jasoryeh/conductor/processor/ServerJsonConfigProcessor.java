@@ -306,7 +306,7 @@ public class ServerJsonConfigProcessor {
                                 } else {
                                     if(config.entryExists("jenkinsHost") && config.entryExists("jenkinsUsername")
                                             && config.entryExists("jenkinsPasswordOrToken")) {
-                                        jHost = config.getString("jenkinHost");
+                                        jHost = config.getString("jenkinsHost");
                                         jUser = config.getString("jenkinsUsername");
                                         jPassOrToken = config.getString("jenkinsPasswordOrToken");
                                     } else {
