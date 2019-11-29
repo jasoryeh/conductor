@@ -20,7 +20,9 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class ServerJsonConfigProcessor {
     /**
@@ -39,6 +41,16 @@ public class ServerJsonConfigProcessor {
 
         boolean skipLaunch = jsonObject.has("skipLaunch") && jsonObject.get("skipLaunch").getAsBoolean();
 
+        HashMap<String, String> vars = new HashMap<>();
+        if (jsonObject.has("variables")) {
+            JsonObject variables = jsonObject.get("variables").getAsJsonObject();
+            for (Map.Entry<String, JsonElement> var : variables.entrySet()) {
+                String key = var.getKey();
+                String val = var.getValue().getAsString();
+                vars.put(key, val);
+            }
+        }
+
         // Files
         JsonObject tree = jsonObject.get("tree").getAsJsonObject();
 
@@ -56,7 +68,7 @@ public class ServerJsonConfigProcessor {
             }
         } // no else, defaults to process automagically
 
-        if (!processTree(tree, config, "", true)) {
+        if (!processTree(tree, config, "", true, vars)) {
             Logger.getLogger().error("Something went wrong, shutting down.");
             new DebugException().printStackTrace();
             Conductor.shutdown(true);
@@ -73,13 +85,15 @@ public class ServerJsonConfigProcessor {
      * @param recursive whether to not to go through all of them (auto-loop)
      * @return Success/fail
      */
-    private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents, boolean recursive) {
+    private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents,
+                                       boolean recursive, Map<String, String> vars) {
         for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
             if(!stringJsonElementEntry.getValue().isJsonObject()) continue;
 
             // if(stringJsonElementEntry.getKey().equals(conf.getLaunchFile())) conf.setLaunchFilePresent(true);
 
-            processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf, parents, recursive);
+            processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf,
+                    parents, recursive, vars);
         }
         return true;
     }
@@ -93,7 +107,8 @@ public class ServerJsonConfigProcessor {
      * @param recursive go through each objects under all the other trees (auto-loop)
      * @return success or not
      */
-    private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents, boolean recursive) {
+    private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents,
+                                         boolean recursive, Map<String, String> vars) {
         Logger.getLogger().info(Logger.EMPTY);
 
         File f = new File(Utility.getCWD() + File.separator +
@@ -135,7 +150,8 @@ public class ServerJsonConfigProcessor {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("tree")) {
                             Logger.getLogger().info("Processing configuration... [" + fileName + "]");
-                            processTree(contents.getValue().getAsJsonObject(), conf, parents + File.separator + fileName, recursive);
+                            processTree(contents.getValue().getAsJsonObject(), conf,
+                                    parents + File.separator + fileName, recursive, vars);
                             Logger.getLogger().info("Done processing [" + fileName + "]");
                         }
                     }
@@ -145,7 +161,8 @@ public class ServerJsonConfigProcessor {
                 RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString().toUpperCase());
 
                 Credentials credentials = new Credentials();
-                Credentials.CredentialType ct = Credentials.CredentialType.valueOf(obj.get("requestType") == null ? "DEFAULT" : obj.get("requestType").getAsString().toUpperCase());
+                Credentials.CredentialType ct = Credentials.CredentialType
+                        .valueOf(obj.get("requestType") == null ? "DEFAULT" : obj.get("requestType").getAsString().toUpperCase());
 
                 if(obj.get("authDetails") != null) {
                     for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
@@ -157,20 +174,21 @@ public class ServerJsonConfigProcessor {
                 switch(type) {
                     case URL:
                         try {
-                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
+                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName,
+                                    conf.isOverwrite(), credentials);
                             ud.download();
                             // Unzip
-                            if (retrieval.get("unzipRequired") != null && retrieval.get("unzipRequired").getAsBoolean()) {
+                            if (retrieval.has("unzipRequired") && retrieval.get("unzipRequired").getAsBoolean()) {
                                 Logger.getLogger().info("[File|W/UZ] Unzipping to" + f.getAbsolutePath());
                                 f.mkdirs();
                                 ZipUtil.unpack(ud.getDownloadedFile(), f);
-                                System.gc();
+                                //System.gc();
                             } else {
                                 Logger.getLogger().info("[File|W] Copying files to " + f.toPath());
                                 Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
                             ud = null;
-                            System.gc();
+                            //System.gc();
                             // Finish unzip
 
                             // ... move on
@@ -201,7 +219,14 @@ public class ServerJsonConfigProcessor {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("content")) {
                             FileOutputStream fos = new FileOutputStream(f);
-                            fos.write(contents.getValue().getAsString().replaceAll("\\{NEWLINE}", System.lineSeparator()).getBytes());
+                            String out = contents.getValue().getAsString()
+                                    .replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
+                            if(obj.has("applyVariables") && obj.get("applyVariables").getAsBoolean()) {
+                                for (Map.Entry<String, String> entry : vars.entrySet()) {
+                                    out = out.replaceAll(Pattern.quote("{{" + entry.getKey() + "}}"), entry.getValue());
+                                }
+                            }
+                            fos.write(out.getBytes());
                             fos.close();
                         }
                     }
@@ -213,7 +238,8 @@ public class ServerJsonConfigProcessor {
                 RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString().toUpperCase());
 
                 Credentials credentials = new Credentials();
-                Credentials.CredentialType ct = Credentials.CredentialType.valueOf((retrieval.get("requestType") == null ? "DEFAULT" : retrieval.get("requestType").getAsString()));
+                Credentials.CredentialType ct = Credentials.CredentialType
+                        .valueOf((retrieval.has("requestType") ? "DEFAULT" : retrieval.get("requestType").getAsString()));
 
                 if(retrieval.get("authDetails") != null) {
                     for (Map.Entry<String, JsonElement> authDetails : retrieval.get("authDetails").getAsJsonObject().entrySet()) {
@@ -225,7 +251,8 @@ public class ServerJsonConfigProcessor {
                 switch(type) {
                     case URL:
                         try {
-                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName, conf.isOverwrite(), credentials);
+                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName,
+                                    conf.isOverwrite(), credentials);
                             ud.download();
 
                             Files.copy(
@@ -239,35 +266,54 @@ public class ServerJsonConfigProcessor {
                         break;
                     case JENKINS:
                         try {
-                            Configuration config = Conductor.getInstance().getConfig();
-                            boolean endNoAuth = !config.entryExists("jenkinsHost")
-                                    || !config.entryExists("jenkinsUsername")
-                                    || !config.entryExists("jenkinsPasswordOrToken");
-                            if(!retrieval.get("auth").getAsBoolean() && endNoAuth) {
-                                Logger.getLogger().error("Jenkins Authentication not present, not continuing.");
+                            if(!retrieval.has("jenkinsAuth")) {
+                                Logger.getLogger().error("No jenkins job details specified for " + fileName);
                                 Conductor.shutdown(true);
+                                return false;
                             }
-
                             JsonObject jenkinsAuth = retrieval.get("jenkinsAuth").getAsJsonObject();
 
-                            boolean useSpecifiedAuth = retrieval.get("auth").getAsBoolean();
-
-                            boolean endNoInfo = (jenkinsAuth.get("job") == null) || (jenkinsAuth.get("artifact") == null) || (jenkinsAuth.get("number") == null);
-                            if(endNoInfo) {
-                                Logger.getLogger().error("Jenkins artifact information not present, not continuing.");
+                            String job, artifact;
+                            int jobNum = -1;
+                            if(!jenkinsAuth.has("job") || !jenkinsAuth.has("artifact")) {
+                                Logger.getLogger().error("No job or artifact specified for " + fileName);
                                 Conductor.shutdown(true);
+                                return false;
+                            } else {
+                                job = jenkinsAuth.get("job").getAsString();
+                                artifact = jenkinsAuth.get("artifact").getAsString();
+                                jobNum = jenkinsAuth.has("number") ? jenkinsAuth.get("number").getAsInt() : jobNum;
                             }
 
-                            String job = jenkinsAuth.get("job").getAsString();
-                            String artifact = jenkinsAuth.get("artifact").getAsString();
-                            int number = jenkinsAuth.get("number").getAsInt();
+                            String jHost, jUser, jPassOrToken;
+                            if(jenkinsAuth.has("host") && jenkinsAuth.has("username")
+                                    && jenkinsAuth.has("passwordOrToken")) {
+                                jHost = jenkinsAuth.get("host").getAsString();
+                                jUser = jenkinsAuth.get("username").getAsString();
+                                jPassOrToken = jenkinsAuth.get("passwordOrToken").getAsString();
+                            } else {
+                                if((retrieval.has("auth") && !retrieval.get("auth").getAsBoolean())
+                                        || !retrieval.has("auth")) {
+                                    jHost = "";
+                                    jUser = "";
+                                    jPassOrToken = "";
+                                } else {
+                                    Configuration config = Conductor.getInstance().getConfig();
+                                    if(config.entryExists("jenkinsHost") && config.entryExists("jenkinsUsername")
+                                            && config.entryExists("jenkinsPasswordOrToken")) {
+                                        Logger.getLogger().error("No default conductor jenkins credentials " +
+                                                "present. Cannot retrieve " + fileName);
+                                        Conductor.shutdown(true);
+                                        return false;
+                                    }
+                                    jHost = config.getString("jenkinHost");
+                                    jUser = config.getString("jenkinsUsername");
+                                    jPassOrToken = config.getString("jenkinsPasswordOrToken");
+                                }
+                            }
 
-                            String host = useSpecifiedAuth ? jenkinsAuth.get("host").getAsString() : config.getString("jenkinsHost");
-                            String username = useSpecifiedAuth ? (jenkinsAuth.get("username") == null ? "" : jenkinsAuth.get("username").getAsString()) : config.getString("jenkinsUsername");
-                            String passwordOrToken = useSpecifiedAuth ? (jenkinsAuth.get("passwordOrToken") == null ? "" : jenkinsAuth.get("passwordOrToken").getAsString()) : config.getString("jenkinsPasswordOrToken");
-
-
-                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(host, job, artifact, number, username, passwordOrToken, fileName, true, new Credentials());
+                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(jHost, job, artifact, jobNum,
+                                    jUser, jPassOrToken, fileName, true, new Credentials());
                             jenkinsDownloader.download();
 
                             Files.copy(
