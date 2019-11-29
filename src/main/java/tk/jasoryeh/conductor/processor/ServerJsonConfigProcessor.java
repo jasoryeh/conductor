@@ -301,14 +301,15 @@ public class ServerJsonConfigProcessor {
                                     Configuration config = Conductor.getInstance().getConfig();
                                     if(config.entryExists("jenkinsHost") && config.entryExists("jenkinsUsername")
                                             && config.entryExists("jenkinsPasswordOrToken")) {
+                                        jHost = config.getString("jenkinHost");
+                                        jUser = config.getString("jenkinsUsername");
+                                        jPassOrToken = config.getString("jenkinsPasswordOrToken");
+                                    } else {
                                         Logger.getLogger().error("No default conductor jenkins credentials " +
                                                 "present. Cannot retrieve " + fileName);
                                         Conductor.shutdown(true);
                                         return false;
                                     }
-                                    jHost = config.getString("jenkinHost");
-                                    jUser = config.getString("jenkinsUsername");
-                                    jPassOrToken = config.getString("jenkinsPasswordOrToken");
                                 }
                             }
 
