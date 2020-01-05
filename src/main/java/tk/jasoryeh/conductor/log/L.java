@@ -55,4 +55,11 @@ public class L {
     public static void s(String prefix, Object... objects) {
         Logger.say(Logger.getLogger().getMessage(prefix, objects));
     }
+
+    /**
+     * Empty newline, nothing
+     */
+    public static void empty() {
+        Logger.say("");
+    }
 }

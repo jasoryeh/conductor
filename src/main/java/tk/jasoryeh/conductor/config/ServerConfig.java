@@ -47,7 +47,7 @@ public class ServerConfig {
                 ServerJsonConfigProcessor.ServerType.valueOf(jsonObject.get("type").getAsString().toUpperCase()),
                 jsonObject.get("launch").getAsString(),
                 jsonObject.has("launchOptions") ? jsonObject.get("launchOptions").getAsString() : "",
-                jsonObject.get("overwrite").getAsBoolean(),
+                !jsonObject.has("overwrite") || jsonObject.get("overwrite").getAsBoolean(),
                 jsonObject.has("skipLaunch") && jsonObject.get("skipLaunch").getAsBoolean(),
                 jsonObject);
     }

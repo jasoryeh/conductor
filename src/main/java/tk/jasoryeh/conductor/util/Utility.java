@@ -58,7 +58,7 @@ public class Utility {
         Get request = Http.get(url);
         request.header("User-Agent", "Java, Conductor");
 
-        return request.toString(); // read straight to variable instead of download to file
+        return request.text(); // read straight to variable instead of download to file
     }
 
     public static String replaceLast(String string, String toReplace, String replacement) {
@@ -77,7 +77,7 @@ public class Utility {
     }
 
     public static boolean isRemote(String u) {
-        return u.startsWith("http://") || u.startsWith("http://") || u.startsWith("ftp://") || u.startsWith("ftps://");
+        return u.startsWith("http://") || u.startsWith("https://") || u.startsWith("ftp://") || u.startsWith("ftps://");
     }
 
     public static File determineFileFromPath(String location) {

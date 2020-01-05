@@ -6,7 +6,7 @@ import lombok.Setter;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.downloaders.Downloader;
-import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.processor.LauncherPropertiesProcessor;
 import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
 import tk.jasoryeh.conductor.util.Experimental;
@@ -32,15 +32,15 @@ public class Conductor extends Boot {
      * With the creation of this, we auto call onEnable and start the process
      */
     Conductor() {
-        Logger.getLogger().info("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
-        Logger.getLogger().info("Getting ready to work...");
+        L.i("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
+        L.i("Getting ready to work...");
 
         String argumentFull = String.join(" ", Utility.getJVMArguments());
-        Logger.getLogger().debug("Arguments - " + argumentFull);
-        Logger.getLogger().debug("File Test - " + new File("test").getAbsolutePath());
-        Logger.getLogger().debug("File separator - " + File.separator);
-        Logger.getLogger().info("Running in - " + System.getProperty("user.dir"));
-        Logger.getLogger().info("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
+        L.d("Arguments - " + argumentFull);
+        L.d("File Test - " + new File("test").getAbsolutePath());
+        L.d("File separator - " + File.separator);
+        L.i("Running in - " + System.getProperty("user.dir"));
+        L.i("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
     }
 
     @Override
@@ -49,7 +49,7 @@ public class Conductor extends Boot {
         JsonObject obj = LauncherPropertiesProcessor.process(this.launcherConfig);
 
         if(obj == null) {
-            Logger.getLogger().error("Unable to process launcher properties");
+            L.e("Unable to process launcher properties");
             shutdown(true);
             return;
         }
@@ -57,7 +57,7 @@ public class Conductor extends Boot {
         ServerConfig conf = ServerJsonConfigProcessor.process(obj);
 
         if(conf == null) {
-            Logger.getLogger().error("Unable to process server properties");
+            L.e("Unable to process server properties");
             shutdown(true);
             return;
         }
@@ -72,7 +72,7 @@ public class Conductor extends Boot {
      */
     public void executeLaunch(ServerConfig conf, JsonObject obj) {
         if(conf.isSkipLaunch()) {
-            Logger.getLogger().info("Skipping launch... Updater done. (skipLaunch)");
+            L.i("Skipping launch... Updater done. (skipLaunch)");
             return;
         }
 
@@ -88,14 +88,14 @@ public class Conductor extends Boot {
                     throw new UnsupportedOperationException("We cannot run non-java applications via class loader.");
                 }
 
-                Logger.getLogger().info("Trying experimental method, falling back if this fails");
-                Logger.getLogger().info("Starting server... Waiting for completion.");
+                L.i("Trying experimental method, falling back if this fails");
+                L.i("Starting server... Waiting for completion.");
                 complete = Experimental.clLoadMain(conf.getFileForLaunch());
             }
 
             if((!complete &&
                     (launchType == ServerConfig.LaunchType.PROCESS || launchType == ServerConfig.LaunchType.CLASSLOADER))) {
-                Logger.getLogger().info("Using ProcessBuilder method.");
+                L.i("Using ProcessBuilder method.");
 
                 String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
 
@@ -112,31 +112,31 @@ public class Conductor extends Boot {
                 params.append("-DconductorUpdated=yes -DstartedWithConductor=yes");
 
 
-                Logger.getLogger().debug("-> Process configuration");
-                Logger.getLogger().debug(params.toString(), program);
-                Logger.getLogger().debug("-> Starting process...");
+                L.d("-> Process configuration");
+                L.d(params.toString(), program);
+                L.d("-> Starting process...");
 
                 ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
                         params.toString(), conf.getType().getParams(), program);
-                Logger.getLogger().debug(String.join(" ", processBuilder.command().toArray(new String[]{"Command: "})));
+                L.d(String.join(" ", processBuilder.command().toArray(new String[]{"Command: "})));
                 Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
                         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                         .redirectInput(ProcessBuilder.Redirect.INHERIT)
                         .start();
 
-                Logger.getLogger().info("Started server... Waiting for completion of " + conf.getName());
+                L.i("Started server... Waiting for completion of " + conf.getName());
                 response = process.waitFor();
             } else {
                 throw new UnsupportedOperationException("Launch type not supported.");
             }
         } catch(IOException | InterruptedException | InvocationTargetException | NoSuchMethodException | IllegalAccessException | ClassNotFoundException e) {
-            Logger.getLogger().warn("An error occurred while starting the programs.");
+            L.w("An error occurred while starting the programs.");
             e.printStackTrace();
         }
 
 
         DateTime timeEnd = DateTime.now();
-        Logger.getLogger().info("Process ended. Exit code " + response + (response == -2 ? "(possible internal exit code)" : ""));
+        L.i("Process ended. Exit code " + response + (response == -2 ? "(possible internal exit code)" : ""));
 
         Period difference = new Period(timeStart, timeEnd);
 
@@ -153,12 +153,12 @@ public class Conductor extends Boot {
 
         String elapsed = formatter.print(difference);
 
-        Logger.getLogger().info("Ran for " + elapsed);
-        Logger.getLogger().info("Shut down.");
+        L.i("Ran for " + elapsed);
+        L.i("Shut down.");
 
         if(response == 251) {
-            Logger.getLogger().info("Response code of 251 detected (restart)");
-            Logger.getLogger().info("Attempting restart.");
+            L.i("Response code of 251 detected (restart)");
+            L.i("Attempting restart.");
             executeLaunch(conf, obj);
         }
     }
@@ -173,7 +173,7 @@ public class Conductor extends Boot {
         }
 
         System.exit(err ? 1 : 0);
-        Logger.getLogger().info("bye.");
+        L.i("bye.");
     }
 
     /**
@@ -197,7 +197,7 @@ public class Conductor extends Boot {
      */
     @Deprecated
     public static void quickStart() {
-        Logger.getLogger().info("Old quick start! Please update your conductor!");
+        L.i("Old quick start! Please update your conductor!");
         quickStart(null);
     }
 
@@ -205,7 +205,7 @@ public class Conductor extends Boot {
      * To be called to skip updates
      */
     public static void quickStart(ClassLoader cl) {
-        Logger.getLogger().info("Quick starting conductor | "
+        L.i("Quick starting conductor | "
                 + ConductorManifest.conductorVersion() + " | " + ConductorManifest.conductorBootClass());
         parentLoader = cl;
 
@@ -217,11 +217,11 @@ public class Conductor extends Boot {
         Conductor conductor = new Conductor();
         Conductor.setInstance(conductor);
 
-        Logger.getLogger().info("Working...");
+        L.i("Working...");
         conductor.onEnable();
 
         // Finish, clean up
-        Logger.getLogger().info("Shutting down...");
+        L.i("Shutting down...");
         conductor.onDisable();
     }
 }

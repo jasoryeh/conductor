@@ -48,7 +48,7 @@ public class ServerJsonConfigProcessor {
         }
 
         ArrayList<JsonObject> trees = new ArrayList<>();
-        trees.add(jsonObject.get("tree").getAsJsonObject());
+        trees.add(jsonObject);
         // Includes just like another server_cnf but doesnt require name or anything
         if(jsonObject.has("includes")) {
             JsonArray includes = jsonObject.get("includes").getAsJsonArray();
@@ -75,16 +75,24 @@ public class ServerJsonConfigProcessor {
                 ? ServerConfig.LaunchType.valueOf(jsonObject.get("launchType").getAsString().toUpperCase())
                 : config.getLaunchType());
 
+        for (int i = 0; i < trees.size(); i++) {
+            L.i(i);
+            L.i(trees.get(i));
+        }
+
         // Files
         for (int i = 0; i < trees.size(); i++) {
             JsonObject treeJson = trees.get(i);
-            boolean proc = processTree(treeJson, config, "", true, vars);
+            L.i(treeJson);
+            boolean isInclude = treeJson.has("iam");
+            boolean proc = processTree(treeJson.get("tree").getAsJsonObject(), config, "", true, vars, isInclude);
             if (!proc && i == 0) {
                 L.e("Something went wrong, shutting down.");
-                new DebugException().printStackTrace();
                 Conductor.shutdown(true);
             } else if(!proc) {
-                L.e("Something went wrong with processing an include. Include contents: " + treeJson.toString());
+                String icl = treeJson.has("iam") ? treeJson.get("iam").getAsString() : treeJson.toString();
+                L.e("Something went wrong with processing an include. Include: " + icl);
+                Conductor.shutdown(true);
             }
         }
 
@@ -100,14 +108,14 @@ public class ServerJsonConfigProcessor {
      * @return Success/fail
      */
     private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents,
-                                       boolean recursive, Map<String, String> vars) {
+                                       boolean recursive, Map<String, String> vars, boolean isInclude) {
         for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
             if(!stringJsonElementEntry.getValue().isJsonObject()) continue;
 
             // if(stringJsonElementEntry.getKey().equals(conf.getLaunchFile())) conf.setLaunchFilePresent(true);
 
             processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf,
-                    parents, recursive, vars);
+                    parents, recursive, vars, isInclude);
         }
         return true;
     }
@@ -122,52 +130,43 @@ public class ServerJsonConfigProcessor {
      * @return success or not
      */
     private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents,
-                                         boolean recursive, Map<String, String> vars) {
-        L.i(Logger.EMPTY); // newline, secretly identify separate objects.
+                                         boolean recursive, Map<String, String> vars, boolean isInclude) {
+        L.empty(); // newline, secretly identify separate objects.
 
-        String objCWD = Utility.getCWD() + File.separator +
+        String objCWD = Utility.cwdAndSep() +
                 (parents.equalsIgnoreCase("") ? "" : (File.separator + parents + File.separator));
-        File pathToThisObj = new File(objCWD + fileName);
+        File objectFile = new File(objCWD + fileName);
 
-        L.i("Now working on... " + pathToThisObj.getName());
+        L.i("[File] Now working on... " + objectFile.getAbsolutePath());
 
-        // Check if the file should be overwritten every startup
-        boolean fileOverwrite = obj.get("overwrite") == null ? conf.isOverwrite() : obj.get("overwrite").getAsBoolean();
-        if(pathToThisObj.exists() && !fileOverwrite) {
-            L.i("Skipping " + pathToThisObj.getAbsolutePath() + ", configuration specified not to re-download");
-            return true;
-        }
+        prepareFile(objectFile,
+                conf.isOverwrite(),
+                (obj.has("overwrite") && obj.get("overwrite").getAsBoolean()),
+                isInclude);
 
-        // Try to delete, else warn about overwrite
-        if(pathToThisObj.exists() && (conf.isOverwrite() && fileOverwrite)) {
-            // Try deleting like a folder
-            if(FileUtils.delete(pathToThisObj)) {
-                L.i("[File|D] Deleted directory: " + pathToThisObj.getAbsolutePath() + " (poof)");
-            } else {
-                L.w("[File|D] Unable to delete directory, this may be overwritten later. " + pathToThisObj.getAbsolutePath());
-            }
-        } else {
-            L.i("[File|D] Not deleting (no overwrite): " + pathToThisObj.getAbsolutePath());
-        }
-
-        L.i("[File|W] Create " + pathToThisObj.getAbsolutePath());
-
-        if(obj.get("type").getAsString().equalsIgnoreCase("folder")) {
-            if (!pathToThisObj.mkdir()) {
-                L.e("[File|W] Unable to create directory " + pathToThisObj.getAbsolutePath());
-                L.e("[File|W] Trying to continue anyways");
+        String fileType = obj.get("type").getAsString();
+        L.i("[File|W] Processing " + objectFile.getAbsolutePath() + " as a " + fileType);
+        if(fileType.equalsIgnoreCase("folder")) {
+            if (!objectFile.mkdir() || !objectFile.mkdirs()) {
+                if(objectFile.exists()) {
+                    L.w("[File|W] Unable to create directory(s) " + objectFile.getAbsolutePath() +
+                            " but the directory exists, so this shouldn't be a problem.");
+                } else {
+                    L.e("[File|W] Unable to create directory(s) " + objectFile.getAbsolutePath() +
+                            " trying to continue anyways");
+                }
             }
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 if(obj.get("contents") != null) {
-                    L.i("Scanning content configuration for " + pathToThisObj.getAbsolutePath() + " " + fileName + "]");
+                    L.i("Scanning content configuration for " + objectFile.getAbsolutePath() + " " + fileName + "]");
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("tree")) {
                             L.i("Processing configuration... [" + fileName + "]");
                             processTree(contents.getValue().getAsJsonObject(), conf,
-                                    parents + File.separator + fileName, recursive, vars);
+                                    parents + File.separator + fileName, recursive, vars, isInclude);
                             L.i("Done processing [" + fileName + "]");
                         }
                     }
@@ -195,13 +194,13 @@ public class ServerJsonConfigProcessor {
                             ud.download();
                             // Unzip
                             if (retrieval.has("unzipRequired") && retrieval.get("unzipRequired").getAsBoolean()) {
-                                L.i("[File|W/UZ] Unzipping to" + pathToThisObj.getAbsolutePath());
-                                pathToThisObj.mkdirs();
-                                ZipUtil.unpack(ud.getDownloadedFile(), pathToThisObj);
+                                L.i("[File|W/UZ] Unzipping to" + objectFile.getAbsolutePath());
+                                objectFile.mkdirs();
+                                ZipUtil.unpack(ud.getDownloadedFile(), objectFile);
                                 //System.gc();
                             } else {
-                                L.i("[File|W] Copying files to " + pathToThisObj.toPath());
-                                Files.copy(ud.getDownloadedFile().toPath(), pathToThisObj.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                L.i("[File|W] Copying files to " + objectFile.toPath());
+                                Files.copy(ud.getDownloadedFile().toPath(), objectFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
 
                             // ... move on
@@ -221,26 +220,33 @@ public class ServerJsonConfigProcessor {
                         throw new UnsupportedOperationException();
                 }
             }
-        } else if(obj.get("type").getAsString().equalsIgnoreCase("file")) {
+        } else if(fileType.equalsIgnoreCase("file")) {
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 try {
-                    if (!pathToThisObj.createNewFile()) {
-                        throw new IOException("Unable to create new file " + pathToThisObj.getAbsolutePath());
+                    if (!objectFile.createNewFile()) {
+                        if(isInclude) {
+                            L.w("[File|Duplicate] Duplicate file in include.");
+                        } else {
+                            throw new IOException("Unable to create new file " + objectFile.getAbsolutePath());
+                        }
                     }
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("content")) {
-                            FileOutputStream fos = new FileOutputStream(pathToThisObj);
+                            FileOutputStream fos = new FileOutputStream(objectFile);
                             String out = contents.getValue().getAsString()
                                     .replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
+
                             // detect if we shouldn't apply variables, don't do it if we said no.
                             boolean applyVars = !obj.has("applyVariables") || obj.get("applyVariables").getAsBoolean();
                             if(applyVars) {
                                 for (Map.Entry<String, String> entry : vars.entrySet()) {
-                                    out = out.replaceAll(Pattern.quote("{{" + entry.getKey() + "}}"), entry.getValue());
+                                    String lookFor = Pattern.quote("{{" + entry.getKey() + "}}");
+                                    out = out.replaceAll(lookFor, entry.getValue());
                                 }
                             }
+
                             fos.write(out.getBytes());
                             fos.close();
                         }
@@ -272,7 +278,7 @@ public class ServerJsonConfigProcessor {
 
                             Files.copy(
                                     ud.getDownloadedFile().toPath(),
-                                    pathToThisObj.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                    objectFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             // ... move on
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
@@ -317,7 +323,7 @@ public class ServerJsonConfigProcessor {
 
                             Files.copy(
                                     jenkinsDownloader.getDownloadedFile().toPath(),
-                                    pathToThisObj.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                    objectFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                             //... move on
                         } catch(IOException ioe) {
@@ -337,6 +343,40 @@ public class ServerJsonConfigProcessor {
         return true;
     }
 
+    public static void prepareFile(File file, boolean mainOverwrite, boolean overwrite, boolean isInclude) {
+        if(isInclude) {
+            if(overwrite) {
+                if(file.exists()) {
+                    if(FileUtils.delete(file)) {
+                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (poof)");
+                    } else {
+                        L.w("[File|D] Unable to delete directory, this may be overwritten later. " + file.getAbsolutePath());
+                    }
+                } else {
+                    L.i("[File|D] Not deleting (nothing here): " + file.getAbsolutePath());
+                }
+                // include obj says to ow
+            } else {
+                L.i("[File|D] Not deleting (include, no overwrite property detected): " + file.getAbsolutePath());
+            }
+        } else { // master
+            if(mainOverwrite || overwrite) {
+                // overwrite?
+                if(file.exists()) {
+                    if (FileUtils.delete(file)) {
+                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (poof)");
+                    } else {
+                        L.w("[File|D] Unable to delete directory, this may be overwritten later. " + file.getAbsolutePath());
+                    }
+                } else {
+                    L.i("[File|D] Not deleting (nothing here): " + file.getAbsolutePath());
+                }
+            } else {
+                L.i("[File|D] Not deleting (no overwrite / not detected): " + file.getAbsolutePath());
+            }
+        }
+    }
+
     public enum RetrieveType {
         URL("url"), JENKINS("jenkins"), SPECIFIED("specified");
 
@@ -352,7 +392,8 @@ public class ServerJsonConfigProcessor {
         PYTHON("python", ""),
         PYTHON3("python3", ""),
         PYTHON2("python2", ""),
-        NODEJS("node", "");
+        NODEJS("node", ""),
+        BASH("bash", "");
 
         @Getter
         private final String equivalent;
