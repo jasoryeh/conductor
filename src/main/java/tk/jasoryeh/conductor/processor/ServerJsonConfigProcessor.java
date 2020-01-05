@@ -67,18 +67,27 @@ public class ServerJsonConfigProcessor {
                         continue;
                     }
                 }
-                trees.add(new JsonParser().parse(includeContent).getAsJsonObject());
+                JsonObject importedInclude = new JsonParser().parse(includeContent).getAsJsonObject();
+                trees.add(importedInclude);
+
+                if (importedInclude.has("variables")) {
+                    JsonObject variables = importedInclude.get("variables").getAsJsonObject();
+                    for (Map.Entry<String, JsonElement> var : variables.entrySet()) {
+                        String key = var.getKey();
+                        String val = var.getValue().getAsString();
+                        if(!vars.containsKey(key)) {
+                            vars.put(key, val);
+                        } else {
+                            L.i("Skipping include variable (duplicate): " + key + "=>" + val);
+                        }
+                    }
+                }
             }
         }
 
         config.setLaunchType(jsonObject.has("launchType")
                 ? ServerConfig.LaunchType.valueOf(jsonObject.get("launchType").getAsString().toUpperCase())
                 : config.getLaunchType());
-
-        for (int i = 0; i < trees.size(); i++) {
-            L.i(i);
-            L.i(trees.get(i));
-        }
 
         // Files
         for (int i = 0; i < trees.size(); i++) {
