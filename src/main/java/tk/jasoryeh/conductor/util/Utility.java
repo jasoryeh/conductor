@@ -19,7 +19,7 @@ public class Utility {
     }
 
     public static String cwdAndSep() {
-        return getCWD() + File.separator;
+        return replaceLast(getCWD().toString(), File.separator + ".", "") + File.separator;
     }
 
     public static boolean recursiveDelete(File f) {

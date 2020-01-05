@@ -205,7 +205,8 @@ public class Conductor extends Boot {
      * To be called to skip updates
      */
     public static void quickStart(ClassLoader cl) {
-        Logger.getLogger().info("Quick starting conductor...");
+        Logger.getLogger().info("Quick starting conductor | "
+                + ConductorManifest.conductorVersion() + " | " + ConductorManifest.conductorBootClass());
         parentLoader = cl;
 
         // Run

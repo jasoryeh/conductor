@@ -16,7 +16,9 @@ import tk.jasoryeh.conductor.util.Utility;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Enumeration;
 import java.util.StringJoiner;
+import java.util.jar.Manifest;
 
 public class ConductorUpdater {
 
@@ -97,6 +99,8 @@ public class ConductorUpdater {
                     // replace deleted file with fresh downloaded version
                     Files.copy(conductorDownloader.getDownloadedFile(), conductorFile);
                 }
+            } else {
+                Files.copy(conductorDownloader.getDownloadedFile(), conductorFile);
             }
 
             // Start
@@ -114,11 +118,19 @@ public class ConductorUpdater {
         // Class loader (quicker, we go to a quick boot method)
         // Doesn't need env params as it uses this jars parameters and we jump straight to
         // the action
-        File jarFile = new File(Utility.cwdAndSep() + "conductor_latest.jar");
+        File jarFile = new File(Utility.cwdAndSep() + FINAL_NAME);
         URL[] urls = new URL[]{jarFile.toURI().toURL()};
+        L.d(jarFile.toURI().toURL());
+        L.d(File.separator);
+        L.d(Utility.getCWD());
+        L.d(Utility.cwdAndSep());
         URLClassLoader customLoader = new URLClassLoader(urls, null);
 
-        Class<?> conductorClass = customLoader.loadClass("tk.jasoryeh.conductor.Conductor");
+        Class<?> conductorClass = customLoader.loadClass(
+                new Manifest(
+                        customLoader.getResourceAsStream("conductor-manifest.mf"))
+                        .getMainAttributes().getValue("Conductor-Boot")
+        );
 
         if(conductorClass == null) {
             Logger.getLogger().error("Invalid jar file, falling back!");
