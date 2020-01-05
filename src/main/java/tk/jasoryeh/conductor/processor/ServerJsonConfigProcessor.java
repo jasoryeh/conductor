@@ -61,6 +61,7 @@ public class ServerJsonConfigProcessor {
                 } else {
                     try {
                         includeContent = Utility.readToString(Utility.determineFileFromPath(where));
+                        L.i(String.format("Include [%s] loaded.", where));
                     } catch(IOException e) {
                         L.w(String.format("Include [%s] cannot be loaded, skipping.", where));
                         e.printStackTrace();
