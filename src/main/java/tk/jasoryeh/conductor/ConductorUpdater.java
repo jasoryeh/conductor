@@ -63,7 +63,7 @@ public class ConductorUpdater {
                     String[] split = data.split(";");
                     String job = split[0];
                     String artifact = split[1];
-                    int num = Integer.valueOf(split[3]);
+                    int num = Integer.valueOf(split[2]);
 
                     conductorDownloader = new JenkinsDownloader(
                             lCon.getJenkins(),
