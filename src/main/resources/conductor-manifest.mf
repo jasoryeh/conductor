@@ -1,1 +1,2 @@
 Conductor-Boot: tk.jasoryeh.conductor.Conductor
+Conductor-Version: ${project.version}-${git.commit.id.abbrev}

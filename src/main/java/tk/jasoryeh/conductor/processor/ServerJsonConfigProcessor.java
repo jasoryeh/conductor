@@ -1,16 +1,18 @@
 package tk.jasoryeh.conductor.processor;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import lombok.Getter;
 import tk.jasoryeh.conductor.Conductor;
-import tk.jasoryeh.conductor.config.Configuration;
+import tk.jasoryeh.conductor.config.JenkinsConfiguration;
+import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.debug.DebugException;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
-import tk.jasoryeh.conductor.downloaders.exceptions.RetrievalException;
 import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.FileUtils;
@@ -20,26 +22,20 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 public class ServerJsonConfigProcessor {
+
     /**
      * Being processing the server_cnf.json, this will loop through everything and download/unzip/delete/etc. if necessary
      * @param jsonObject parsed server_cnf.json
      * @return The configuration of the current server
      */
     public static ServerConfig process(final JsonObject jsonObject) {
-        String name = jsonObject.get("templateName").getAsString();
-        ServerType type = ServerType.valueOf(jsonObject.get("type").getAsString().toUpperCase());
-
-        String launchFile = jsonObject.get("launch").getAsString();
-        String launchOptions = jsonObject.has("launchOptions") ? jsonObject.get("launchOptions").getAsString() : "";
-
-        boolean overwrite = jsonObject.get("overwrite").getAsBoolean();
-
-        boolean skipLaunch = jsonObject.has("skipLaunch") && jsonObject.get("skipLaunch").getAsBoolean();
+        ServerConfig config = new ServerConfig(jsonObject);
 
         HashMap<String, String> vars = new HashMap<>();
         if (jsonObject.has("variables")) {
@@ -51,27 +47,45 @@ public class ServerJsonConfigProcessor {
             }
         }
 
-        // Files
-        JsonObject tree = jsonObject.get("tree").getAsJsonObject();
+        ArrayList<JsonObject> trees = new ArrayList<>();
+        trees.add(jsonObject.get("tree").getAsJsonObject());
+        // Includes just like another server_cnf but doesnt require name or anything
+        if(jsonObject.has("includes")) {
+            JsonArray includes = jsonObject.get("includes").getAsJsonArray();
+            for (JsonElement include : includes) {
+                String where = include.getAsString();
 
-        ServerConfig config = new ServerConfig(name, type, launchFile, launchOptions, overwrite, tree);
-        config.setSkipLaunch(skipLaunch);
-
-        if(jsonObject.has("launchType")) {
-            String launchType = jsonObject.get("launchType").getAsString();
-            if(launchType.equalsIgnoreCase("process")) {
-                config.setLaunchType(ServerConfig.LaunchType.PROCESS);
-            } else if(launchType.equalsIgnoreCase("classloader")) {
-                config.setLaunchType(ServerConfig.LaunchType.CLASSLOADER);
-            } else {
-                throw new UnsupportedOperationException("Unknown launch type option " + launchType);
+                String includeContent;
+                if(Utility.isRemote(where)) {
+                    includeContent = Utility.remoteFileToString(where);
+                } else {
+                    try {
+                        includeContent = Utility.readToString(Utility.determineFileFromPath(where));
+                    } catch(IOException e) {
+                        L.w(String.format("Include [%s] cannot be loaded, skipping.", where));
+                        e.printStackTrace();
+                        continue;
+                    }
+                }
+                trees.add(new JsonParser().parse(includeContent).getAsJsonObject());
             }
-        } // no else, defaults to process automagically
+        }
 
-        if (!processTree(tree, config, "", true, vars)) {
-            Logger.getLogger().error("Something went wrong, shutting down.");
-            new DebugException().printStackTrace();
-            Conductor.shutdown(true);
+        config.setLaunchType(jsonObject.has("launchType")
+                ? ServerConfig.LaunchType.valueOf(jsonObject.get("launchType").getAsString().toUpperCase())
+                : config.getLaunchType());
+
+        // Files
+        for (int i = 0; i < trees.size(); i++) {
+            JsonObject treeJson = trees.get(i);
+            boolean proc = processTree(treeJson, config, "", true, vars);
+            if (!proc && i == 0) {
+                L.e("Something went wrong, shutting down.");
+                new DebugException().printStackTrace();
+                Conductor.shutdown(true);
+            } else if(!proc) {
+                L.e("Something went wrong with processing an include. Include contents: " + treeJson.toString());
+            }
         }
 
         return config;
@@ -109,50 +123,52 @@ public class ServerJsonConfigProcessor {
      */
     private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents,
                                          boolean recursive, Map<String, String> vars) {
-        Logger.getLogger().info(Logger.EMPTY);
+        L.i(Logger.EMPTY); // newline, secretly identify separate objects.
 
-        File f = new File(Utility.getCWD() + File.separator +
-                (parents.equalsIgnoreCase("") ? "" : File.separator + parents + File.separator) + fileName);
-        Logger.getLogger().info("Now working on... " + f.getName());
+        String objCWD = Utility.getCWD() + File.separator +
+                (parents.equalsIgnoreCase("") ? "" : (File.separator + parents + File.separator));
+        File pathToThisObj = new File(objCWD + fileName);
+
+        L.i("Now working on... " + pathToThisObj.getName());
 
         // Check if the file should be overwritten every startup
         boolean fileOverwrite = obj.get("overwrite") == null ? conf.isOverwrite() : obj.get("overwrite").getAsBoolean();
-        if(f.exists() && !fileOverwrite) {
-            Logger.getLogger().info("Skipping " + f.getAbsolutePath() + ", configuration specified not to re-download");
+        if(pathToThisObj.exists() && !fileOverwrite) {
+            L.i("Skipping " + pathToThisObj.getAbsolutePath() + ", configuration specified not to re-download");
             return true;
         }
 
         // Try to delete, else warn about overwrite
-        if(f.exists() && (conf.isOverwrite() && fileOverwrite)) {
+        if(pathToThisObj.exists() && (conf.isOverwrite() && fileOverwrite)) {
             // Try deleting like a folder
-            if(FileUtils.delete(f)) {
-                Logger.getLogger().info("[File|D] Deleted directory: " + f.getAbsolutePath() + " (poof)");
+            if(FileUtils.delete(pathToThisObj)) {
+                L.i("[File|D] Deleted directory: " + pathToThisObj.getAbsolutePath() + " (poof)");
             } else {
-                Logger.getLogger().warn("[File|D] Unable to delete directory, this may be overwritten later. " + f.getAbsolutePath());
+                L.w("[File|D] Unable to delete directory, this may be overwritten later. " + pathToThisObj.getAbsolutePath());
             }
         } else {
-            L.i("[File|D] Not deleting (no overwrite): " + f.getAbsolutePath());
+            L.i("[File|D] Not deleting (no overwrite): " + pathToThisObj.getAbsolutePath());
         }
 
-        Logger.getLogger().info("[File|W] Create " + f.getAbsolutePath());
+        L.i("[File|W] Create " + pathToThisObj.getAbsolutePath());
 
         if(obj.get("type").getAsString().equalsIgnoreCase("folder")) {
-            if (!f.mkdir()) {
-                Logger.getLogger().error("[File|W] Unable to create directory " + f.getAbsolutePath());
-                Logger.getLogger().error("[File|W] Trying to continue anyways");
+            if (!pathToThisObj.mkdir()) {
+                L.e("[File|W] Unable to create directory " + pathToThisObj.getAbsolutePath());
+                L.e("[File|W] Trying to continue anyways");
             }
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 if(obj.get("contents") != null) {
-                    Logger.getLogger().info("Scanning content configuration for " + f.getAbsolutePath() + " " + fileName + "]");
+                    L.i("Scanning content configuration for " + pathToThisObj.getAbsolutePath() + " " + fileName + "]");
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("tree")) {
-                            Logger.getLogger().info("Processing configuration... [" + fileName + "]");
+                            L.i("Processing configuration... [" + fileName + "]");
                             processTree(contents.getValue().getAsJsonObject(), conf,
                                     parents + File.separator + fileName, recursive, vars);
-                            Logger.getLogger().info("Done processing [" + fileName + "]");
+                            L.i("Done processing [" + fileName + "]");
                         }
                     }
                 }
@@ -179,21 +195,18 @@ public class ServerJsonConfigProcessor {
                             ud.download();
                             // Unzip
                             if (retrieval.has("unzipRequired") && retrieval.get("unzipRequired").getAsBoolean()) {
-                                Logger.getLogger().info("[File|W/UZ] Unzipping to" + f.getAbsolutePath());
-                                f.mkdirs();
-                                ZipUtil.unpack(ud.getDownloadedFile(), f);
+                                L.i("[File|W/UZ] Unzipping to" + pathToThisObj.getAbsolutePath());
+                                pathToThisObj.mkdirs();
+                                ZipUtil.unpack(ud.getDownloadedFile(), pathToThisObj);
                                 //System.gc();
                             } else {
-                                Logger.getLogger().info("[File|W] Copying files to " + f.toPath());
-                                Files.copy(ud.getDownloadedFile().toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                L.i("[File|W] Copying files to " + pathToThisObj.toPath());
+                                Files.copy(ud.getDownloadedFile().toPath(), pathToThisObj.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             }
-                            ud = null;
-                            //System.gc();
-                            // Finish unzip
 
                             // ... move on
-                        } catch(RetrievalException | IOException re) {
-                            re.printStackTrace();
+                        } catch(IOException ioe) {
+                            ioe.printStackTrace();
                             Conductor.shutdown(true);
                         }
                         break;
@@ -212,16 +225,18 @@ public class ServerJsonConfigProcessor {
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 try {
-                    if (!f.createNewFile()) {
-                        throw new IOException("Unable to create new file " + f.getAbsolutePath());
+                    if (!pathToThisObj.createNewFile()) {
+                        throw new IOException("Unable to create new file " + pathToThisObj.getAbsolutePath());
                     }
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("content")) {
-                            FileOutputStream fos = new FileOutputStream(f);
+                            FileOutputStream fos = new FileOutputStream(pathToThisObj);
                             String out = contents.getValue().getAsString()
                                     .replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
-                            if(obj.has("applyVariables") && obj.get("applyVariables").getAsBoolean()) {
+                            // detect if we shouldn't apply variables, don't do it if we said no.
+                            boolean applyVars = !obj.has("applyVariables") || obj.get("applyVariables").getAsBoolean();
+                            if(applyVars) {
                                 for (Map.Entry<String, String> entry : vars.entrySet()) {
                                     out = out.replaceAll(Pattern.quote("{{" + entry.getKey() + "}}"), entry.getValue());
                                 }
@@ -257,17 +272,17 @@ public class ServerJsonConfigProcessor {
 
                             Files.copy(
                                     ud.getDownloadedFile().toPath(),
-                                    f.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                                    pathToThisObj.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             // ... move on
-                        } catch(RetrievalException | IOException re) {
-                            re.printStackTrace();
+                        } catch(IOException ioe) {
+                            ioe.printStackTrace();
                             Conductor.shutdown(true);
                         }
                         break;
                     case JENKINS:
                         try {
                             if(!retrieval.has("jenkinsAuth")) {
-                                Logger.getLogger().error("No jenkins job details specified for " + fileName);
+                                L.e("No jenkins job details specified for " + fileName);
                                 Conductor.shutdown(true);
                                 return false;
                             }
@@ -276,7 +291,7 @@ public class ServerJsonConfigProcessor {
                             String job, artifact;
                             int jobNum = -1;
                             if(!jenkinsAuth.has("job") || !jenkinsAuth.has("artifact")) {
-                                Logger.getLogger().error("No job or artifact specified for " + fileName);
+                                L.e("No job or artifact specified for " + fileName);
                                 Conductor.shutdown(true);
                                 return false;
                             } else {
@@ -285,51 +300,28 @@ public class ServerJsonConfigProcessor {
                                 jobNum = jenkinsAuth.has("number") ? jenkinsAuth.get("number").getAsInt() : jobNum;
                             }
 
-                            String jHost, jUser, jPassOrToken;
+                            JenkinsConfiguration jenkinsConfig;
                             if(jenkinsAuth.has("host") && jenkinsAuth.has("username")
                                     && jenkinsAuth.has("passwordOrToken")) {
-                                jHost = jenkinsAuth.get("host").getAsString();
-                                jUser = jenkinsAuth.get("username").getAsString();
-                                jPassOrToken = jenkinsAuth.get("passwordOrToken").getAsString();
+                                jenkinsConfig = new JenkinsConfiguration(
+                                        jenkinsAuth.get("host").getAsString(),
+                                        jenkinsAuth.get("username").getAsString(),
+                                        jenkinsAuth.get("passwordOrToken").getAsString());
                             } else {
-                                Configuration config = Conductor.getInstance().getConfig();
-                                if(retrieval.has("auth") && !retrieval.get("auth").getAsBoolean()) {
-                                    if(jenkinsAuth.has("host")) {
-                                        jHost = jenkinsAuth.get("host").getAsString();
-                                    } else if (config.entryExists("jenkinsHost")) {
-                                        jHost = config.getString("jenkinsHost");
-                                    } else {
-                                        jHost = "http://127.0.0.1";
-                                    }
-                                    jUser = "";
-                                    jPassOrToken = "";
-                                } else {
-                                    if(config.entryExists("jenkinsHost") && config.entryExists("jenkinsUsername")
-                                            && config.entryExists("jenkinsPasswordOrToken")) {
-                                        jHost = config.getString("jenkinsHost");
-                                        jUser = config.getString("jenkinsUsername");
-                                        jPassOrToken = config.getString("jenkinsPasswordOrToken");
-                                    } else {
-                                        Logger.getLogger().error("No default conductor jenkins credentials " +
-                                                "present. Cannot retrieve " + fileName);
-                                        Conductor.shutdown(true);
-                                        return false;
-                                    }
-                                }
+                                jenkinsConfig = LauncherConfiguration.get().getJenkins();
                             }
 
-                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(jHost, job, artifact, jobNum,
-                                    jUser, jPassOrToken, fileName, true, new Credentials());
+                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(jenkinsConfig, job, artifact,
+                                    jobNum, fileName, true);
                             jenkinsDownloader.download();
 
                             Files.copy(
                                     jenkinsDownloader.getDownloadedFile().toPath(),
-                                    f.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
+                                    pathToThisObj.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                             //... move on
-                        } catch(RetrievalException | IOException re) {
-                            re.printStackTrace();
+                        } catch(IOException ioe) {
+                            ioe.printStackTrace();
                             Conductor.shutdown(true);
                         }
                         break;

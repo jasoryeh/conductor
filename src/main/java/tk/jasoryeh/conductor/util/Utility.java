@@ -1,15 +1,25 @@
 package tk.jasoryeh.conductor.util;
 
+import org.javalite.http.Get;
+import org.javalite.http.Http;
+
 import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 public class Utility {
     public static Path getCWD() {
         return FileSystems.getDefault().getPath(".").toAbsolutePath();
+    }
+
+    public static String cwdAndSep() {
+        return getCWD() + File.separator;
     }
 
     public static boolean recursiveDelete(File f) {
@@ -38,5 +48,39 @@ public class Utility {
             ret.append(s).append(join);
         }
         return ret.toString();
+    }
+
+    public static String readToString(File f) throws IOException {
+        return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+    }
+
+    public static String remoteFileToString(String url) {
+        Get request = Http.get(url);
+        request.header("User-Agent", "Java, Conductor");
+
+        return request.toString(); // read straight to variable instead of download to file
+    }
+
+    public static String replaceLast(String string, String toReplace, String replacement) {
+        int pos = string.lastIndexOf(toReplace);
+        if (pos > -1) {
+            return string.substring(0, pos)
+                    + replacement
+                    + string.substring(pos + toReplace.length(), string.length());
+        } else {
+            return string;
+        }
+    }
+
+    public static String cleanEndSlash(String s) {
+        return s.endsWith(File.separator) ? replaceLast(s, File.separator, "") : s;
+    }
+
+    public static boolean isRemote(String u) {
+        return u.startsWith("http://") || u.startsWith("http://") || u.startsWith("ftp://") || u.startsWith("ftps://");
+    }
+
+    public static File determineFileFromPath(String location) {
+        return new File(location).exists() ? new File(location) : new File(Utility.cwdAndSep() + location);
     }
 }
