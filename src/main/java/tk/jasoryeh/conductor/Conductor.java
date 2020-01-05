@@ -3,8 +3,7 @@ package tk.jasoryeh.conductor;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
-import tk.jasoryeh.conductor.config.Configuration;
-import tk.jasoryeh.conductor.config.LauncherConfig;
+import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.log.Logger;
@@ -26,15 +25,13 @@ public class Conductor extends Boot {
     @Getter
     @Setter
     private static Conductor instance;
-
-    private LauncherConfig launcherConfig;
+    @Getter
+    private LauncherConfiguration launcherConfig;
 
     /**
-     * With the creation of this object, we auto call onEnable and start the process
+     * With the creation of this, we auto call onEnable and start the process
      */
     Conductor() {
-        instance = this;
-
         Logger.getLogger().info("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
         Logger.getLogger().info("Getting ready to work...");
 
@@ -46,26 +43,15 @@ public class Conductor extends Boot {
         Logger.getLogger().info("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
     }
 
-    private Configuration config;
-
-    public Configuration getConfig() {
-        if(this.config == null) {
-            config = new Configuration("serverlauncher.properties", true);
-        }
-        config.reload();
-        return config;
-    }
-
+    @Override
     public void onEnable() {
-        this.config = new Configuration("serverlauncher.properties", true);
-
-        this.launcherConfig = LauncherPropertiesProcessor.buildConfig(this.config);
-
+        this.launcherConfig = LauncherConfiguration.get();
         JsonObject obj = LauncherPropertiesProcessor.process(this.launcherConfig);
 
         if(obj == null) {
             Logger.getLogger().error("Unable to process launcher properties");
             shutdown(true);
+            return;
         }
 
         ServerConfig conf = ServerJsonConfigProcessor.process(obj);
@@ -73,6 +59,7 @@ public class Conductor extends Boot {
         if(conf == null) {
             Logger.getLogger().error("Unable to process server properties");
             shutdown(true);
+            return;
         }
 
         executeLaunch(conf, obj);
@@ -89,20 +76,25 @@ public class Conductor extends Boot {
             return;
         }
 
+        ServerConfig.LaunchType launchType = conf.getLaunchType();
+        boolean complete = false;
+
         DateTime timeStart = DateTime.now();
         int response = -2;
 
         try {
-            if(conf.getLaunchType() == ServerConfig.LaunchType.CLASSLOADER) {
+            if(launchType == ServerConfig.LaunchType.CLASSLOADER) {
                 if(conf.getType() != ServerJsonConfigProcessor.ServerType.JAVA) {
                     throw new UnsupportedOperationException("We cannot run non-java applications via class loader.");
                 }
 
-                Logger.getLogger().info("Trying experimental method, falling back if fail.");
-
+                Logger.getLogger().info("Trying experimental method, falling back if this fails");
                 Logger.getLogger().info("Starting server... Waiting for completion.");
-                Experimental.clLoadMain(conf.getFileForLaunch());
-            } else if(conf.getLaunchType() == ServerConfig.LaunchType.PROCESS) {
+                complete = Experimental.clLoadMain(conf.getFileForLaunch());
+            }
+
+            if((!complete &&
+                    (launchType == ServerConfig.LaunchType.PROCESS || launchType == ServerConfig.LaunchType.CLASSLOADER))) {
                 Logger.getLogger().info("Using ProcessBuilder method.");
 
                 String program = new File(Utility.getCWD().toString()).toURI().relativize(conf.getFileForLaunch().toURI()).getPath();
@@ -192,34 +184,38 @@ public class Conductor extends Boot {
      */
     public void reload() {
         this.onDisable();
-        this.config.reload();
+        LauncherConfiguration.load();
         this.onEnable();
     }
 
+
+    // static
     public static ClassLoader parentLoader;
 
+    /**
+     * Old quick start for skipping updates
+     */
+    @Deprecated
     public static void quickStart() {
         Logger.getLogger().info("Old quick start! Please update your conductor!");
         quickStart(null);
     }
 
     /**
-     * To be called to skip updates and other stuff.
+     * To be called to skip updates
      */
-    public static void quickStart(ClassLoader parLoader) {
-        Logger.getLogger().info("Quickstart triggered, application update complete, starting conductor...");
-        parentLoader = parLoader;
-
-        for (String jvmArgument : Utility.getJVMArguments()) {
-            if(jvmArgument.toLowerCase().startsWith("-xms") || jvmArgument.toLowerCase().startsWith("-xmx")) {
-                Logger.getLogger().warn("If this is running within docker, -xms and -xmx is not encouraged to be used.");
-            }
-        }
-
-        // Setup
-        Conductor conductor = new Conductor();
+    public static void quickStart(ClassLoader cl) {
+        Logger.getLogger().info("Quick starting conductor...");
+        parentLoader = cl;
 
         // Run
+        if(Conductor.getInstance() != null) {
+            Conductor.getInstance().onDisable();
+        }
+
+        Conductor conductor = new Conductor();
+        Conductor.setInstance(conductor);
+
         Logger.getLogger().info("Working...");
         conductor.onEnable();
 

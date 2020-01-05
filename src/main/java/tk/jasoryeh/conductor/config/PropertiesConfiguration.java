@@ -18,8 +18,8 @@ import java.util.UUID;
  * ex. config.properties is one instance
  * and launcher.properties would be another.
  */
-public class Configuration {
-    private static List<Configuration> instances = new ArrayList<>();
+public class PropertiesConfiguration {
+    private static List<PropertiesConfiguration> instances = new ArrayList<>();
 
     @Getter
     private final String file;
@@ -35,7 +35,7 @@ public class Configuration {
      * @param fileName The file relative to jar to find the config.
      * @param allowCreation Create file if not exists?
      */
-    public Configuration(String fileName, boolean allowCreation) {
+    public PropertiesConfiguration(String fileName, boolean allowCreation) {
         this.file = fileName;
         this.allowCreation = allowCreation;
         instances.add(this);

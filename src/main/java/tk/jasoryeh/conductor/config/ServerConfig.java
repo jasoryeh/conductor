@@ -29,18 +29,27 @@ public class ServerConfig {
     private boolean skipLaunch;
 
     public ServerConfig(String name, ServerJsonConfigProcessor.ServerType type, String launchFile,
-                        String launchOptions, boolean overwrite, JsonObject json) {
+                        String launchOptions, boolean overwrite, boolean skiplaunch, JsonObject json) {
         this.name = name;
         this.type = type;
         this.launchFile = launchFile;
         this.launchOptions = launchOptions;
         this.overwrite = overwrite;
+        this.skipLaunch = skiplaunch;
         this.json = json;
-
-        this.skipLaunch = false;
 
         // Default to launchType of Process
         this.launchType = LaunchType.PROCESS;
+    }
+
+    public ServerConfig(JsonObject jsonObject) {
+        this(jsonObject.get("templateName").getAsString(),
+                ServerJsonConfigProcessor.ServerType.valueOf(jsonObject.get("type").getAsString().toUpperCase()),
+                jsonObject.get("launch").getAsString(),
+                jsonObject.has("launchOptions") ? jsonObject.get("launchOptions").getAsString() : "",
+                jsonObject.get("overwrite").getAsBoolean(),
+                jsonObject.has("skipLaunch") && jsonObject.get("skipLaunch").getAsBoolean(),
+                jsonObject);
     }
 
     public File getFileForLaunch() {
