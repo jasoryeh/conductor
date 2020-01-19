@@ -151,7 +151,7 @@ public class ServerJsonConfigProcessor {
 
         prepareFile(objectFile,
                 conf.isOverwrite(),
-                (obj.has("overwrite") && obj.get("overwrite").getAsBoolean()),
+                (!obj.has("overwrite") || obj.get("overwrite").getAsBoolean()),
                 isInclude);
 
         String fileType = obj.get("type").getAsString();
@@ -370,7 +370,7 @@ public class ServerJsonConfigProcessor {
                 L.i("[File|D] Not deleting (include, no overwrite property detected): " + file.getAbsolutePath());
             }
         } else { // master
-            if(mainOverwrite || overwrite) {
+            if(overwrite && mainOverwrite) {
                 // overwrite?
                 if(file.exists()) {
                     if (FileUtils.delete(file)) {
