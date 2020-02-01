@@ -151,7 +151,8 @@ public class ServerJsonConfigProcessor {
 
         prepareFile(objectFile,
                 conf.isOverwrite(),
-                (!obj.has("overwrite") || obj.get("overwrite").getAsBoolean()),
+                isInclude ? (obj.has("overwrite") && obj.get("overwrite").getAsBoolean())
+                        : (!obj.has("overwrite") || obj.get("overwrite").getAsBoolean()),
                 isInclude);
 
         String fileType = obj.get("type").getAsString();
