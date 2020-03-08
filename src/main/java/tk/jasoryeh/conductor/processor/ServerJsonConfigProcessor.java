@@ -223,7 +223,7 @@ public class ServerJsonConfigProcessor {
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 // Don't retrieve from a remote source, tree is defined in the configuration
-                if(obj.has("content") && (obj.get("content") instanceof JsonObject)) {
+                if(obj.has("contents") && (obj.get("contents") instanceof JsonObject)) {
                     L.i("[File] Processing content configuration for " + objectFile.getAbsolutePath() + " " + fileName + "]");
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
                         // Tree only, folders can't have "text content"
