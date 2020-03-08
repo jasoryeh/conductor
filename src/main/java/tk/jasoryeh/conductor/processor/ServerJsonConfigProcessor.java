@@ -155,10 +155,12 @@ public class ServerJsonConfigProcessor {
             if(!stringJsonElementEntry.getValue().isJsonObject()) continue;
 
             // process this element
+            L.i("Working on " + stringJsonElementEntry.getKey() + " in " + parents);
             boolean success = processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf,
                     parents, recursive, vars, isInclude);
             if(!success) {
                 // not well.
+                L.e("Failed at " + stringJsonElementEntry + " in " + parents);
                 return false;
             }
         }
@@ -228,7 +230,7 @@ public class ServerJsonConfigProcessor {
                         if(contents.getKey().equalsIgnoreCase("tree")) {
                             L.i("[File] Processing configuration... [" + fileName + "]");
                             boolean success = processTree(contents.getValue().getAsJsonObject(), conf,
-                                    parents + File.separator + fileName, recursive, vars, isInclude);
+                                    parents.equals("") ? fileName : parents + File.separator + fileName, recursive, vars, isInclude);
                             if(!success) {
                                 L.e("[File] Error processing [" + fileName + "]");
                                 return false;
