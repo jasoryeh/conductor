@@ -7,7 +7,6 @@ import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.log.L;
-import tk.jasoryeh.conductor.processor.LauncherPropertiesProcessor;
 import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
 import tk.jasoryeh.conductor.util.Experimental;
 import tk.jasoryeh.conductor.util.TerminalColors;
@@ -46,7 +45,7 @@ public class Conductor extends Boot {
     @Override
     public void onEnable() {
         this.launcherConfig = LauncherConfiguration.get();
-        JsonObject obj = LauncherPropertiesProcessor.process(this.launcherConfig);
+        JsonObject obj = this.launcherConfig.processJsonConfiguration();
 
         if(obj == null) {
             L.e("Unable to process launcher properties");
