@@ -2,6 +2,7 @@ package tk.jasoryeh.conductor.util;
 
 import org.javalite.http.Get;
 import org.javalite.http.Http;
+import tk.jasoryeh.conductor.log.L;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,9 +57,14 @@ public class Utility {
 
     public static String remoteFileToString(String url) {
         Get request = Http.get(url);
-        request.header("User-Agent", "Java, Conductor");
+        request.header("User-Agent", "Conductor, Java");
 
-        return request.text(); // read straight to variable instead of download to file
+        int responseCode = request.responseCode();
+        if(!String.valueOf(responseCode).startsWith("2")) {
+            L.w("[Download] Remote server at " + url + " returned a " + responseCode + " response, " +
+                    "we ignore this, but you should see this.");
+        }
+        return request.text();
     }
 
     public static String replaceLast(String string, String toReplace, String replacement) {

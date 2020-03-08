@@ -2,6 +2,8 @@ package tk.jasoryeh.conductor.config;
 
 import lombok.Getter;
 
+import java.util.UUID;
+
 public class LauncherConfiguration {
 
     @Getter
@@ -9,6 +11,8 @@ public class LauncherConfiguration {
 
     @Getter
     private final String name;
+    @Getter
+    private final LauncherMode mode;
     @Getter
     private final String configurationLocation;
 
@@ -21,7 +25,8 @@ public class LauncherConfiguration {
     public LauncherConfiguration(PropertiesConfiguration c) {
         this.raw = c;
 
-        this.name = c.getString("name");
+        this.name = c.getString("name", "unknown-" + UUID.randomUUID().toString().split("-")[0]);
+        this.mode = LauncherMode.from(c.getString("mode", "default"));
         this.configurationLocation = c.getString("config");
 
         this.selfUpdate = new LauncherUpdateFromConfiguration(c);
@@ -57,6 +62,26 @@ public class LauncherConfiguration {
     public enum LauncherUpdateFrom {
         JENKINS,
         URL
+    }
+
+    public enum LauncherMode {
+        DEFAULT,
+        SLAVE,
+        MASTER;
+
+        public static LauncherMode from(String s) {
+            for (LauncherMode value : LauncherMode.values()) {
+                if(value.matches(s)) {
+                    return value;
+                }
+            }
+            return null;
+        }
+
+        public boolean matches(String thiz) {
+            return thiz.equalsIgnoreCase(this.toString())
+                    || thiz.toLowerCase().equalsIgnoreCase(this.toString().toLowerCase());
+        }
     }
 
 

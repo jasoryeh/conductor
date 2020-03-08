@@ -9,12 +9,10 @@ import tk.jasoryeh.conductor.Conductor;
 import tk.jasoryeh.conductor.config.JenkinsConfiguration;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.config.ServerConfig;
-import tk.jasoryeh.conductor.debug.DebugException;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.log.L;
-import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.FileUtils;
 import tk.jasoryeh.conductor.util.Utility;
 import org.zeroturnaround.zip.ZipUtil;
@@ -35,8 +33,15 @@ public class ServerJsonConfigProcessor {
      * @return The configuration of the current server
      */
     public static ServerConfig process(final JsonObject jsonObject) {
+        // Server configuration (name, type, overwrite, etc.)
         ServerConfig config = new ServerConfig(jsonObject);
 
+        // Server file trees to process
+        ArrayList<JsonObject> trees = new ArrayList<>();
+        // Add local/main server configuration
+        trees.add(jsonObject);
+
+        // Variables to replace in files
         HashMap<String, String> vars = new HashMap<>();
         if (jsonObject.has("variables")) {
             JsonObject variables = jsonObject.get("variables").getAsJsonObject();
@@ -47,36 +52,53 @@ public class ServerJsonConfigProcessor {
             }
         }
 
-        ArrayList<JsonObject> trees = new ArrayList<>();
-        trees.add(jsonObject);
-        // Includes just like another server_cnf but doesnt require name or anything
+        /* Check for other server configurations to also process, these includes are not to overwrite current server
+        configuration and files unless otherwise specified in each included file's "overwrite" property
+
+        Includes are just like another server_cnf but doesnt require as many properties
+
+        (Required) Includes must have: "iam", "tree"
+        (Optional) Additional properties that can be set: "variables", "overwrite_variables"
+         */
         if(jsonObject.has("includes")) {
+            // has "includes", trying to get all of them now
             JsonArray includes = jsonObject.get("includes").getAsJsonArray();
             for (JsonElement include : includes) {
+                // get each include's location (usually a url, or local file)
                 String where = include.getAsString();
 
                 String includeContent;
                 if(Utility.isRemote(where)) {
+                    // If the include is remotely stored, we will download it, and store it as this string
                     includeContent = Utility.remoteFileToString(where);
                 } else {
+                    // If this include is local, we will load it into this string
                     try {
                         includeContent = Utility.readToString(Utility.determineFileFromPath(where));
                         L.i(String.format("Include [%s] loaded.", where));
                     } catch(IOException e) {
-                        L.w(String.format("Include [%s] cannot be loaded, skipping.", where));
+                        L.e(String.format("Include [%s] cannot be loaded!", where));
                         e.printStackTrace();
-                        continue;
+                        Conductor.shutdown(true);
+                        return null;
                     }
                 }
+
+                // Parse include string to json element -> object, and add it to what we will process
                 JsonObject importedInclude = new JsonParser().parse(includeContent).getAsJsonObject();
                 trees.add(importedInclude);
 
+                // import variables from these includes
                 if (importedInclude.has("variables")) {
+                    // check if we want included variables to overwrite our main server configuration's
+                    boolean overwriteVariables = importedInclude.has("overwrite_variables")
+                            && importedInclude.get("overwrite_variables").getAsBoolean();
                     JsonObject variables = importedInclude.get("variables").getAsJsonObject();
                     for (Map.Entry<String, JsonElement> var : variables.entrySet()) {
                         String key = var.getKey();
                         String val = var.getValue().getAsString();
-                        if(!vars.containsKey(key)) {
+                        // skip existing/or not
+                        if(!vars.containsKey(key) || overwriteVariables) {
                             vars.put(key, val);
                         } else {
                             L.i("Skipping include variable (duplicate): " + key + "=>" + val);
@@ -86,20 +108,28 @@ public class ServerJsonConfigProcessor {
             }
         }
 
-        config.setLaunchType(jsonObject.has("launchType")
-                ? ServerConfig.LaunchType.valueOf(jsonObject.get("launchType").getAsString().toUpperCase())
-                : config.getLaunchType());
+        if(jsonObject.has("launchType")) { // default it "process"
+            config.setLaunchType(ServerConfig.LaunchType
+                    .valueOf(
+                            jsonObject.get("launchType")
+                                    .getAsString().toUpperCase()
+                    )
+            );
+        }
 
-        // Files
+
+        // Files, by numbers because we want to go in order (our main configuration should be first)
         for (int i = 0; i < trees.size(); i++) {
             JsonObject treeJson = trees.get(i);
-            L.i(treeJson);
-            boolean isInclude = treeJson.has("iam");
+            boolean isInclude = treeJson.has("iam") || i != 0;
+            L.d("Is include: " + isInclude + ";Data: " + treeJson);
             boolean proc = processTree(treeJson.get("tree").getAsJsonObject(), config, "", true, vars, isInclude);
             if (!proc && i == 0) {
+                // if our main configuration fails, we fail and shutdown
                 L.e("Something went wrong, shutting down.");
                 Conductor.shutdown(true);
             } else if(!proc) {
+                // if an include fails, we also fail and shutdown
                 String icl = treeJson.has("iam") ? treeJson.get("iam").getAsString() : treeJson.toString();
                 L.e("Something went wrong with processing an include. Include: " + icl);
                 Conductor.shutdown(true);
@@ -119,14 +149,20 @@ public class ServerJsonConfigProcessor {
      */
     private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents,
                                        boolean recursive, Map<String, String> vars, boolean isInclude) {
+        // loop elements in tree
         for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
+            // elements should be objects, not arrays or values, etc. so we skip them
             if(!stringJsonElementEntry.getValue().isJsonObject()) continue;
 
-            // if(stringJsonElementEntry.getKey().equals(conf.getLaunchFile())) conf.setLaunchFilePresent(true);
-
-            processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf,
+            // process this element
+            boolean success = processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf,
                     parents, recursive, vars, isInclude);
+            if(!success) {
+                // not well.
+                return false;
+            }
         }
+        // if everything goes well, we should get back to here
         return true;
     }
 
@@ -141,44 +177,52 @@ public class ServerJsonConfigProcessor {
      */
     private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents,
                                          boolean recursive, Map<String, String> vars, boolean isInclude) {
-        L.empty(); // newline, secretly identify separate objects.
-
-        String objCWD = Utility.cwdAndSep() +
+        String objectCWD = Utility.cwdAndSep() +
                 (parents.equalsIgnoreCase("") ? "" : (File.separator + parents + File.separator));
-        File objectFile = new File(objCWD + fileName);
+        File objectFile = new File(objectCWD + fileName);
 
+        L.empty(); // newline, secretly identify separate objects.
         L.i("[File] Now working on... " + objectFile.getAbsolutePath());
 
-        prepareFile(objectFile,
+        boolean processedAndReady = prepareFile(objectFile,
                 conf.isOverwrite(),
                 isInclude ? (obj.has("overwrite") && obj.get("overwrite").getAsBoolean())
                         : (!obj.has("overwrite") || obj.get("overwrite").getAsBoolean()),
                 isInclude);
 
+        if(!processedAndReady) {
+            L.e("[File] An error occurred while processing (prepring) " + objectFile.getAbsolutePath());
+            return false;
+        }
+
         String fileType = obj.get("type").getAsString();
         L.i("[File|W] Processing " + objectFile.getAbsolutePath() + " as a " + fileType);
         if(fileType.equalsIgnoreCase("folder")) {
-            if (!objectFile.mkdir() || !objectFile.mkdirs()) {
-                if(objectFile.exists()) {
+            if(!objectFile.exists()) {
+                if (!objectFile.mkdir() || !objectFile.mkdirs()) {
                     L.w("[File|W] Unable to create directory(s) " + objectFile.getAbsolutePath() +
                             " but the directory exists, so this shouldn't be a problem.");
-                } else {
-                    L.e("[File|W] Unable to create directory(s) " + objectFile.getAbsolutePath() +
-                            " trying to continue anyways");
                 }
+            } else {
+                L.w("[File|W] Folder has existed, this shouldn't be a problem.");
             }
 
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
-                if(obj.get("contents") != null) {
-                    L.i("Scanning content configuration for " + objectFile.getAbsolutePath() + " " + fileName + "]");
+                // Don't retrieve from a remote source, tree is defined in the configuration
+                if(obj.has("content") && (obj.get("content") instanceof JsonObject)) {
+                    L.i("[File] Processing content configuration for " + objectFile.getAbsolutePath() + " " + fileName + "]");
                     for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
                         // Tree only, folders can't have "text content"
                         if(contents.getKey().equalsIgnoreCase("tree")) {
-                            L.i("Processing configuration... [" + fileName + "]");
-                            processTree(contents.getValue().getAsJsonObject(), conf,
+                            L.i("[File] Processing configuration... [" + fileName + "]");
+                            boolean success = processTree(contents.getValue().getAsJsonObject(), conf,
                                     parents + File.separator + fileName, recursive, vars, isInclude);
-                            L.i("Done processing [" + fileName + "]");
+                            if(!success) {
+                                L.e("[File] Error processing [" + fileName + "]");
+                                return false;
+                            }
+                            L.i("[File] Done processing [" + fileName + "]");
                         }
                     }
                 }
@@ -189,7 +233,6 @@ public class ServerJsonConfigProcessor {
                 Credentials credentials = new Credentials();
                 Credentials.CredentialType ct = Credentials.CredentialType
                         .valueOf(obj.get("requestType") == null ? "DEFAULT" : obj.get("requestType").getAsString().toUpperCase());
-
                 if(obj.get("authDetails") != null) {
                     for (Map.Entry<String, JsonElement> authDetails : obj.get("authDetails").getAsJsonObject().entrySet()) {
                         // (should) do nothing if auth details aren't present
@@ -217,7 +260,7 @@ public class ServerJsonConfigProcessor {
                             // ... move on
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
-                            Conductor.shutdown(true);
+                            return false;
                         }
                         break;
                     case JENKINS:
@@ -230,40 +273,43 @@ public class ServerJsonConfigProcessor {
                         // Other types
                         throw new UnsupportedOperationException();
                 }
+                return true;
             }
         } else if(fileType.equalsIgnoreCase("file")) {
+            if(objectFile.exists()) {
+                L.e("[File] Duplicate file, this is probably due to a missing overwrite property on this file.");
+                if(isInclude) {
+                    L.e("[File] This is probably because this is a include, if you want to overwrite " +
+                            "existing files in an include you must set overwrite to true.");
+                }
+                return false;
+            }
+
             JsonObject retrieval = obj.get("retrieval").getAsJsonObject();
             if (!retrieval.get("retrieve").getAsBoolean()) {
+                // If defined in configuration, we can only write text based file types
                 try {
-                    if (!objectFile.createNewFile()) {
-                        if(isInclude) {
-                            L.w("[File|Duplicate] Duplicate file in include.");
-                        } else {
-                            throw new IOException("Unable to create new file " + objectFile.getAbsolutePath());
-                        }
-                    }
-                    for (Map.Entry<String, JsonElement> contents : obj.get("contents").getAsJsonObject().entrySet()) {
+                    if(objectFile.createNewFile() && (obj.has("contents") && obj.get("contents").getAsJsonObject().has("content"))) {
                         // Tree only, folders can't have "text content"
-                        if(contents.getKey().equalsIgnoreCase("content")) {
-                            FileOutputStream fos = new FileOutputStream(objectFile);
-                            String out = contents.getValue().getAsString()
-                                    .replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
+                        FileOutputStream fos = new FileOutputStream(objectFile);
+                        String out = obj.get("contents").getAsJsonObject().get("content").getAsString()
+                                .replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
 
-                            // detect if we shouldn't apply variables, don't do it if we said no.
-                            boolean applyVars = !obj.has("applyVariables") || obj.get("applyVariables").getAsBoolean();
-                            if(applyVars) {
-                                for (Map.Entry<String, String> entry : vars.entrySet()) {
-                                    String lookFor = Pattern.quote("{{" + entry.getKey() + "}}");
-                                    out = out.replaceAll(lookFor, entry.getValue());
-                                }
+                        // detect if we shouldn't apply variables, don't do it if we said no, do it if we didn't say anything
+                        boolean applyVars = !obj.has("applyVariables") || obj.get("applyVariables").getAsBoolean();
+                        if(applyVars) {
+                            for (Map.Entry<String, String> entry : vars.entrySet()) {
+                                String lookFor = Pattern.quote("{{" + entry.getKey() + "}}");
+                                out = out.replaceAll(lookFor, entry.getValue());
                             }
-
-                            fos.write(out.getBytes());
-                            fos.close();
                         }
+
+                        fos.write(out.getBytes());
+                        fos.close();
                     }
                 } catch(IOException io) {
                     io.printStackTrace();
+                    return false;
                 }
                 return true;
             } else {
@@ -272,7 +318,6 @@ public class ServerJsonConfigProcessor {
                 Credentials credentials = new Credentials();
                 Credentials.CredentialType ct = Credentials.CredentialType
                         .valueOf((!retrieval.has("requestType") ? "DEFAULT" : retrieval.get("requestType").getAsString()));
-
                 if(retrieval.get("authDetails") != null) {
                     for (Map.Entry<String, JsonElement> authDetails : retrieval.get("authDetails").getAsJsonObject().entrySet()) {
                         // (should) do nothing if auth details aren't present
@@ -293,14 +338,13 @@ public class ServerJsonConfigProcessor {
                             // ... move on
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
-                            Conductor.shutdown(true);
+                            return false;
                         }
                         break;
                     case JENKINS:
                         try {
                             if(!retrieval.has("jenkinsAuth")) {
                                 L.e("No jenkins job details specified for " + fileName);
-                                Conductor.shutdown(true);
                                 return false;
                             }
                             JsonObject jenkinsAuth = retrieval.get("jenkinsAuth").getAsJsonObject();
@@ -309,7 +353,6 @@ public class ServerJsonConfigProcessor {
                             int jobNum = -1;
                             if(!jenkinsAuth.has("job") || !jenkinsAuth.has("artifact")) {
                                 L.e("No job or artifact specified for " + fileName);
-                                Conductor.shutdown(true);
                                 return false;
                             } else {
                                 job = jenkinsAuth.get("job").getAsString();
@@ -339,7 +382,7 @@ public class ServerJsonConfigProcessor {
                             //... move on
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
-                            Conductor.shutdown(true);
+                            return false;
                         }
                         break;
                     case SPECIFIED:
@@ -354,37 +397,67 @@ public class ServerJsonConfigProcessor {
         return true;
     }
 
-    public static void prepareFile(File file, boolean mainOverwrite, boolean overwrite, boolean isInclude) {
+    public static boolean prepareFile(File file, boolean mainOverwrite, boolean configIndividualOverwrite, boolean isInclude) {
+        if(!file.exists()) {
+            L.i("The file " + file.getAbsolutePath() + " doesn't exist, and we didn't delete anything here so it's ready to write to!");
+            return true;
+        }
+
+        // if it's a include, we only look at our individual include file's overwrite rules if it wants
+        // to change stuff that main might have, then it will force itself, otherwise if it doesn't say
+        // to overwrite then if it exists we should skip by returning false
+        // success should return true
         if(isInclude) {
-            if(overwrite) {
-                if(file.exists()) {
+            if(configIndividualOverwrite) {
+                if(file.isDirectory()) {
                     if(FileUtils.delete(file)) {
-                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (poof)");
+                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (previously existed, directory, individual, include)");
+                        return true;
                     } else {
-                        L.w("[File|D] Unable to delete directory, this may be overwritten later. " + file.getAbsolutePath());
+                        L.e("[File|D] Unable to delete directory! " + file.getAbsolutePath() + " (previously existed, directory, individual, include)");
+                        return false;
                     }
                 } else {
-                    L.i("[File|D] Not deleting (nothing here): " + file.getAbsolutePath());
-                }
-                // include obj says to ow
-            } else {
-                L.i("[File|D] Not deleting (include, no overwrite property detected): " + file.getAbsolutePath());
-            }
-        } else { // master
-            if(overwrite && mainOverwrite) {
-                // overwrite?
-                if(file.exists()) {
-                    if (FileUtils.delete(file)) {
-                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (poof)");
+                    if(FileUtils.delete(file)) {
+                        L.i("[File|D] Deleted file: " + file.getAbsolutePath() + " (previously existed, file, individual, include)");
+                        return true;
                     } else {
-                        L.w("[File|D] Unable to delete directory, this may be overwritten later. " + file.getAbsolutePath());
+                        L.e("[File|D] Unable to delete file! " + file.getAbsolutePath() + " (previously existed, file, individual, include)");
+                        return false;
+                    }
+                }
+            }
+        } else {
+            if(mainOverwrite && configIndividualOverwrite) {
+                if(file.isDirectory()) {
+                    if(FileUtils.delete(file)) {
+                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (previously existed, directory, individual, main)");
+                        return true;
+                    } else {
+                        L.e("[File|D] Unable to delete directory! " + file.getAbsolutePath() + " (previously existed, directory, individual, main)");
+                        return false;
                     }
                 } else {
-                    L.i("[File|D] Not deleting (nothing here): " + file.getAbsolutePath());
+                    if(FileUtils.delete(file)) {
+                        L.i("[File|D] Deleted file: " + file.getAbsolutePath() + " (previously existed, file, individual, main)");
+                        return true;
+                    } else {
+                        L.e("[File|D] Unable to delete file! " + file.getAbsolutePath() + " (previously existed, file, individual, main)");
+                        return false;
+                    }
                 }
-            } else {
-                L.i("[File|D] Not deleting (no overwrite / not detected): " + file.getAbsolutePath());
             }
+        }
+
+        if(file.isDirectory()) {
+            L.w("[File|D] Everything told us to leave existing files alone, so we weren't sure what to do with "
+                    + file.getAbsolutePath() + " (previously existed, file, false all, " + (isInclude ? "include" : "main") + " )"
+                    + " however this is a directory, so we will assume things will be done to the files in the directory.");
+            return true;
+        } else {
+            L.e("[File|D] Everything told us to leave existing files alone, so we weren't sure what to do with "
+                    + file.getAbsolutePath() + " (previously existed, directory, false all, " + (isInclude ? "include" : "main") + " )");
+            return false;
         }
     }
 
