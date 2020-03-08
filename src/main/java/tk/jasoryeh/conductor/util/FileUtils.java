@@ -1,14 +1,20 @@
 package tk.jasoryeh.conductor.util;
 
+import lombok.SneakyThrows;
 import tk.jasoryeh.conductor.log.L;
 
 import java.io.File;
+import java.nio.file.Files;
 
 public class FileUtils {
     private static final String FILE_DELETE_LOG_PREFIX = "[FS|Deletion]";
-    
+
+    @SneakyThrows
     public static boolean delete(File f) {
         L.s(FILE_DELETE_LOG_PREFIX, "Delete: " + f.getAbsolutePath());
+        if(Files.isSymbolicLink(f.toPath())) {
+            Files.delete(f.toPath());
+        }
         if(f.isDirectory()) {
             deleteFolder(f);
         } else {
