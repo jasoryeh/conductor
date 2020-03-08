@@ -205,9 +205,11 @@ public class ServerJsonConfigProcessor {
         L.i("[File|W] Processing " + objectFile.getAbsolutePath() + " as a " + fileType);
         if(fileType.equalsIgnoreCase("folder")) {
             if(!objectFile.exists()) {
-                if (!objectFile.mkdir() || !objectFile.mkdirs()) {
+                // doesn't exist, make the folder
+                if (!objectFile.mkdirs()) {
                     L.w("[File|W] Unable to create directory(s) " + objectFile.getAbsolutePath() +
-                            " but the directory exists, so this shouldn't be a problem.");
+                            " directory doesn't exist, so anything else in this folder is impossible.");
+                    return false;
                 }
             } else {
                 L.w("[File|W] Folder has existed, this shouldn't be a problem.");
@@ -469,13 +471,14 @@ public class ServerJsonConfigProcessor {
         }
 
         if(file.isDirectory()) {
-            L.w("[File|D] Everything told us to leave existing files alone, so we weren't sure what to do with "
+            L.w("[File|D] Configuration told us to leave existing files alone, so we weren't sure what to do with "
                     + file.getAbsolutePath() + " (previously existed, file, false all, " + (isInclude ? "include" : "main") + " )"
                     + " however this is a directory, so we will assume things will be done to the files in the directory.");
             return true;
         } else {
-            L.w("[File|D] Everything told us to leave existing files alone, so we weren't sure what to do with "
-                    + file.getAbsolutePath() + " (previously existed, directory, false all, " + (isInclude ? "include" : "main") + " )");
+            L.w("[File|D] Configuration told us to leave existing files alone, so we weren't sure what to do with "
+                    + file.getAbsolutePath() + " (previously existed, directory, " + mainOverwrite + ", "
+                    + configIndividualOverwrite + ", " + (isInclude ? "include" : "main") + " )");
             L.w("[File|D] We will be skipping this file, " + file.getAbsolutePath());
             // we just skip this file, don't throw exception since it is safe to skip and continue
             return false;
