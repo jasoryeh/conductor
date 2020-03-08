@@ -184,14 +184,20 @@ public class ServerJsonConfigProcessor {
         L.empty(); // newline, secretly identify separate objects.
         L.i("[File] Now working on... " + objectFile.getAbsolutePath());
 
-        boolean processedAndReady = prepareFile(objectFile,
-                conf.isOverwrite(),
-                isInclude ? (obj.has("overwrite") && obj.get("overwrite").getAsBoolean())
-                        : (!obj.has("overwrite") || obj.get("overwrite").getAsBoolean()),
-                isInclude);
+        try {
+            boolean processedAndReady = prepareFile(
+                    objectFile,
+                    conf.isOverwrite(),
+                    isInclude ? (obj.has("overwrite") && obj.get("overwrite").getAsBoolean())
+                            : (!obj.has("overwrite") || obj.get("overwrite").getAsBoolean()),
+                    isInclude);
 
-        if(!processedAndReady) {
-            L.e("[File] An error occurred while processing (prepring) " + objectFile.getAbsolutePath());
+            if(!processedAndReady) {
+                L.i("[File] Overwrite rule say we should skip " + objectFile.getAbsolutePath());
+                return true;
+            }
+        } catch(IOException e) {
+            L.e("[File] Somethign happened while preparing " + objectFile.getAbsolutePath() + " for overwrite, this is just to be safe.");
             return false;
         }
 
@@ -397,7 +403,16 @@ public class ServerJsonConfigProcessor {
         return true;
     }
 
-    public static boolean prepareFile(File file, boolean mainOverwrite, boolean configIndividualOverwrite, boolean isInclude) {
+    /**
+     *
+     * @param file Object being processed
+     * @param mainOverwrite What main configuration told us to do about overwrites
+     * @param configIndividualOverwrite What the individual file's overwrite rule is
+     * @param isInclude Is this file from an include?
+     * @return true - should continue; false - don't process this file any further
+     * @throws IOException thrown if we should stop everything, equivalent to a false, but worse
+     */
+    public static boolean prepareFile(File file, boolean mainOverwrite, boolean configIndividualOverwrite, boolean isInclude) throws IOException {
         if(!file.exists()) {
             L.i("The file " + file.getAbsolutePath() + " doesn't exist, and we didn't delete anything here so it's ready to write to!");
             return true;
@@ -407,7 +422,10 @@ public class ServerJsonConfigProcessor {
         // to change stuff that main might have, then it will force itself, otherwise if it doesn't say
         // to overwrite then if it exists we should skip by returning false
         // success should return true
+
+        // exception thrown here if we fail to overwrite because we should overthrow everything!
         if(isInclude) {
+            // includes, we only look at individual file overwrite property
             if(configIndividualOverwrite) {
                 if(file.isDirectory()) {
                     if(FileUtils.delete(file)) {
@@ -415,7 +433,7 @@ public class ServerJsonConfigProcessor {
                         return true;
                     } else {
                         L.e("[File|D] Unable to delete directory! " + file.getAbsolutePath() + " (previously existed, directory, individual, include)");
-                        return false;
+                        throw new IOException("Cannot prepare file!");
                     }
                 } else {
                     if(FileUtils.delete(file)) {
@@ -423,19 +441,20 @@ public class ServerJsonConfigProcessor {
                         return true;
                     } else {
                         L.e("[File|D] Unable to delete file! " + file.getAbsolutePath() + " (previously existed, file, individual, include)");
-                        return false;
+                        throw new IOException("Cannot prepare file!");
                     }
                 }
             }
         } else {
+            // main configuration, also look at main config
             if(mainOverwrite && configIndividualOverwrite) {
-                if(file.isDirectory()) {
+                 if(file.isDirectory()) {
                     if(FileUtils.delete(file)) {
                         L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (previously existed, directory, individual, main)");
                         return true;
                     } else {
                         L.e("[File|D] Unable to delete directory! " + file.getAbsolutePath() + " (previously existed, directory, individual, main)");
-                        return false;
+                        throw new IOException("Cannot prepare file!");
                     }
                 } else {
                     if(FileUtils.delete(file)) {
@@ -443,7 +462,7 @@ public class ServerJsonConfigProcessor {
                         return true;
                     } else {
                         L.e("[File|D] Unable to delete file! " + file.getAbsolutePath() + " (previously existed, file, individual, main)");
-                        return false;
+                        throw new IOException("Cannot prepare file!");
                     }
                 }
             }
@@ -455,8 +474,10 @@ public class ServerJsonConfigProcessor {
                     + " however this is a directory, so we will assume things will be done to the files in the directory.");
             return true;
         } else {
-            L.e("[File|D] Everything told us to leave existing files alone, so we weren't sure what to do with "
+            L.w("[File|D] Everything told us to leave existing files alone, so we weren't sure what to do with "
                     + file.getAbsolutePath() + " (previously existed, directory, false all, " + (isInclude ? "include" : "main") + " )");
+            L.w("[File|D] We will be skipping this file, " + file.getAbsolutePath());
+            // we just skip this file, don't throw exception since it is safe to skip and continue
             return false;
         }
     }
