@@ -43,7 +43,7 @@ public abstract class Downloader {
         return downloadedFile != null && downloadedFile.exists();
     }
 
-    public abstract void download();
+    public abstract boolean download();
 
     public boolean setOutputFileName(String newName) {
         return downloadedFile.renameTo(new File(newName));

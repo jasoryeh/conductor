@@ -388,7 +388,11 @@ public class ServerJsonConfigProcessor {
 
                             JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(jenkinsConfig, job, artifact,
                                     jobNum, fileName, true);
-                            jenkinsDownloader.download();
+                            boolean jenkinsOK = jenkinsDownloader.download();
+                            if(!jenkinsOK) {
+                                L.e("Unable to download artifact for " + objectFile.getAbsolutePath());
+                                return false;
+                            }
 
                             Files.copy(
                                     jenkinsDownloader.getDownloadedFile().toPath(),

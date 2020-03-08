@@ -41,7 +41,7 @@ public class URLDownloader extends Downloader {
      */
     @SneakyThrows
     @Override
-    public void download() {
+    public boolean download() {
         URL u = new URL(this.url);
         HttpURLConnection huc = (HttpURLConnection) u.openConnection();
         this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
@@ -57,6 +57,8 @@ public class URLDownloader extends Downloader {
         inputStream.close();
 
         this.downloadedFile = out;
+
+        return true;
     }
 
     private void log(String msg) {

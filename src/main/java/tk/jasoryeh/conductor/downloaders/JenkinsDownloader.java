@@ -68,7 +68,7 @@ public class JenkinsDownloader extends Downloader {
      */
     @SneakyThrows
     @Override
-    public void download() {
+    public boolean download() {
         this.jenkins = this.auth.isAuthless() ? new JenkinsServer(new URI(this.auth.getHost()))
                 : new JenkinsServer(new URI(this.auth.getHost()), this.auth.getUser(), this.auth.getAuth());
 
@@ -100,12 +100,12 @@ public class JenkinsDownloader extends Downloader {
                 outputStream.close();
                 readableByteChannel.close();
                 inputStream.close();
-                return;
+                return true;
             }
         }
 
         this.log("Unable to find the artifact/build | " + this.job + " | " + this.artifactName + " #" + this.number);
-        Conductor.shutdown(true);
+        return false;
     }
     
     private void log(String msg) {
