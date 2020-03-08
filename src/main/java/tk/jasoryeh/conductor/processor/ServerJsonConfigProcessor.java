@@ -430,7 +430,10 @@ public class ServerJsonConfigProcessor {
      */
     public static boolean prepareFile(File file, boolean mainOverwrite, boolean configIndividualOverwrite, boolean isInclude) throws IOException {
         if(!file.exists()) {
-            L.i("The file " + file.getAbsolutePath() + " doesn't exist, and we didn't delete anything here so it's ready to write to!");
+            // do nothing if it already is empty
+            L.i("The file " + file.getAbsolutePath() + " doesn't exist, and we didn't delete anything " +
+                    "here so it's ready to write to!" + " (doesn't exist, <doesn't matter>, " + mainOverwrite + ", "
+                    + configIndividualOverwrite + ", include)");
             return true;
         }
 
@@ -474,7 +477,16 @@ public class ServerJsonConfigProcessor {
             // if main says no nothing goes
             // if main says yes individual says no, just that doesn't go
             // if main says no individual says no, still can't go
-            if(mainOverwrite && configIndividualOverwrite) {
+
+            if(!configIndividualOverwrite) {
+                // respect individual file properties in case below doesn't follow through
+                L.i("The file " + file.getAbsolutePath() + " doesn't want to be overwritten so we won't " +
+                        "delete it!" + " (previously existed, " + (file.isDirectory() ? "directory" : "file") + ", "
+                        + mainOverwrite + ", " + configIndividualOverwrite + ", include)");
+                return false;
+            }
+
+            if(mainOverwrite) {
                 if(file.isDirectory()) {
                     if(FileUtils.delete(file)) {
                         L.i("[File|D] Deleted folder: " + file.getAbsolutePath()
@@ -505,7 +517,7 @@ public class ServerJsonConfigProcessor {
 
         if(file.isDirectory()) {
             L.w("[File|D] Configuration told us to leave existing files alone, so we weren't sure what to do with "
-                    + file.getAbsolutePath() + " (previously existed, file, false all, " + (isInclude ? "include" : "main") + " )"
+                    + file.getAbsolutePath() + " (previously existed, file, " + (isInclude ? "include" : "main") + " )"
                     + " however this is a folder, so we will assume things will be done to the files in the folder.");
             return true;
         } else {
