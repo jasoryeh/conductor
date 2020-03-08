@@ -204,6 +204,7 @@ public class ServerJsonConfigProcessor {
         String fileType = obj.get("type").getAsString();
         L.i("[File|W] Processing " + objectFile.getAbsolutePath() + " as a \"" + fileType + "\"");
         if(fileType.equalsIgnoreCase("folder")) {
+            L.i("Working on folder contents for " + objectFile.getAbsolutePath());
             if(!objectFile.exists()) {
                 // doesn't exist, make the folder
                 if (!objectFile.mkdirs()) {
@@ -286,6 +287,7 @@ public class ServerJsonConfigProcessor {
                 return true;
             }
         } else if(fileType.equalsIgnoreCase("file")) {
+            L.i("Working on file " + objectFile.getAbsolutePath());
             if(objectFile.exists()) {
                 L.e("[File] Duplicate file, this is probably due to a missing overwrite property on this file.");
                 if(isInclude) {
@@ -317,11 +319,12 @@ public class ServerJsonConfigProcessor {
                         fos.write(out.getBytes());
                         fos.close();
                     }
+                    return true;
                 } catch(IOException io) {
                     io.printStackTrace();
                     return false;
                 }
-                return true;
+                // verify is unreachable return true;
             } else {
                 RetrieveType type = RetrieveType.valueOf(retrieval.get("method").getAsString().toUpperCase());
 
@@ -346,11 +349,11 @@ public class ServerJsonConfigProcessor {
                                     ud.getDownloadedFile().toPath(),
                                     objectFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             // ... move on
+                            return true;
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
                             return false;
                         }
-                        break;
                     case JENKINS:
                         try {
                             if(!retrieval.has("jenkinsAuth")) {
@@ -390,11 +393,11 @@ public class ServerJsonConfigProcessor {
                                     objectFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                             //... move on
+                            return true;
                         } catch(IOException ioe) {
                             ioe.printStackTrace();
                             return false;
                         }
-                        break;
                     case SPECIFIED:
                         // Specified not supposed to land here
                         throw new UnsupportedOperationException();
@@ -402,6 +405,7 @@ public class ServerJsonConfigProcessor {
                         // Other types
                         throw new UnsupportedOperationException();
                 }
+                // verify is unreachable: return false;
             }
         }
 
