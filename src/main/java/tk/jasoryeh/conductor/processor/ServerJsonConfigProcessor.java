@@ -197,19 +197,21 @@ public class ServerJsonConfigProcessor {
                 return true;
             }
         } catch(IOException e) {
-            L.e("[File] Somethign happened while preparing " + objectFile.getAbsolutePath() + " for overwrite, this is just to be safe.");
+            L.e("[File] Something happened while preparing " + objectFile.getAbsolutePath() + " for overwrite, this is just to be safe.");
             return false;
         }
 
         String fileType = obj.get("type").getAsString();
-        L.i("[File|W] Processing " + objectFile.getAbsolutePath() + " as a " + fileType);
+        L.i("[File|W] Processing " + objectFile.getAbsolutePath() + " as a \"" + fileType + "\"");
         if(fileType.equalsIgnoreCase("folder")) {
             if(!objectFile.exists()) {
                 // doesn't exist, make the folder
                 if (!objectFile.mkdirs()) {
-                    L.w("[File|W] Unable to create directory(s) " + objectFile.getAbsolutePath() +
-                            " directory doesn't exist, so anything else in this folder is impossible.");
+                    L.w("[File|W] Unable to create folder(s) " + objectFile.getAbsolutePath() +
+                            " folder doesn't exist, so anything else in this folder is impossible.");
                     return false;
+                } else {
+                    L.i("[File|W] Created folder " + objectFile.getAbsolutePath());
                 }
             } else {
                 L.w("[File|W] Folder has existed, this shouldn't be a problem.");
@@ -402,7 +404,9 @@ public class ServerJsonConfigProcessor {
                 }
             }
         }
-        return true;
+
+        L.e("\"" + fileType + "\" not found! Please fix this before continuing!");
+        return false;
     }
 
     /**
@@ -411,7 +415,7 @@ public class ServerJsonConfigProcessor {
      * @param mainOverwrite What main configuration told us to do about overwrites
      * @param configIndividualOverwrite What the individual file's overwrite rule is
      * @param isInclude Is this file from an include?
-     * @return true - should continue; false - don't process this file any further
+     * @return true - should continue (ready to write to); false - don't process this file any further (shouldn't write to)
      * @throws IOException thrown if we should stop everything, equivalent to a false, but worse
      */
     public static boolean prepareFile(File file, boolean mainOverwrite, boolean configIndividualOverwrite, boolean isInclude) throws IOException {
@@ -431,39 +435,55 @@ public class ServerJsonConfigProcessor {
             if(configIndividualOverwrite) {
                 if(file.isDirectory()) {
                     if(FileUtils.delete(file)) {
-                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (previously existed, directory, individual, include)");
+                        L.i("[File|D] Deleted folder: " + file.getAbsolutePath()
+                                + " (previously existed, folder, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", include)");
                         return true;
                     } else {
-                        L.e("[File|D] Unable to delete directory! " + file.getAbsolutePath() + " (previously existed, directory, individual, include)");
+                        L.e("[File|D] Unable to delete folder! " + file.getAbsolutePath()
+                                + " (previously existed, folder, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", include)");
                         throw new IOException("Cannot prepare file!");
                     }
                 } else {
                     if(FileUtils.delete(file)) {
-                        L.i("[File|D] Deleted file: " + file.getAbsolutePath() + " (previously existed, file, individual, include)");
+                        L.i("[File|D] Deleted file: " + file.getAbsolutePath()
+                                + " (previously existed, file, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", include)");
                         return true;
                     } else {
-                        L.e("[File|D] Unable to delete file! " + file.getAbsolutePath() + " (previously existed, file, individual, include)");
+                        L.e("[File|D] Unable to delete file! " + file.getAbsolutePath()
+                                + " (previously existed, file, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", include)");
                         throw new IOException("Cannot prepare file!");
                     }
                 }
             }
         } else {
             // main configuration, also look at main config
-            if(mainOverwrite && configIndividualOverwrite) {
+            if(mainOverwrite || configIndividualOverwrite) {
                  if(file.isDirectory()) {
                     if(FileUtils.delete(file)) {
-                        L.i("[File|D] Deleted directory: " + file.getAbsolutePath() + " (previously existed, directory, individual, main)");
+                        L.i("[File|D] Deleted folder: " + file.getAbsolutePath()
+                                + " (previously existed, folder, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", main)");
                         return true;
                     } else {
-                        L.e("[File|D] Unable to delete directory! " + file.getAbsolutePath() + " (previously existed, directory, individual, main)");
+                        L.e("[File|D] Unable to delete folder! " + file.getAbsolutePath()
+                                + " (previously existed, folder, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", main)");
                         throw new IOException("Cannot prepare file!");
                     }
                 } else {
                     if(FileUtils.delete(file)) {
-                        L.i("[File|D] Deleted file: " + file.getAbsolutePath() + " (previously existed, file, individual, main)");
+                        L.i("[File|D] Deleted file: " + file.getAbsolutePath() +
+                                " (previously existed, file, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", main)");
                         return true;
                     } else {
-                        L.e("[File|D] Unable to delete file! " + file.getAbsolutePath() + " (previously existed, file, individual, main)");
+                        L.e("[File|D] Unable to delete file! " + file.getAbsolutePath()
+                                + " (previously existed, file, " + mainOverwrite + ", "
+                                + configIndividualOverwrite + ", main)");
                         throw new IOException("Cannot prepare file!");
                     }
                 }
@@ -473,11 +493,11 @@ public class ServerJsonConfigProcessor {
         if(file.isDirectory()) {
             L.w("[File|D] Configuration told us to leave existing files alone, so we weren't sure what to do with "
                     + file.getAbsolutePath() + " (previously existed, file, false all, " + (isInclude ? "include" : "main") + " )"
-                    + " however this is a directory, so we will assume things will be done to the files in the directory.");
+                    + " however this is a folder, so we will assume things will be done to the files in the folder.");
             return true;
         } else {
             L.w("[File|D] Configuration told us to leave existing files alone, so we weren't sure what to do with "
-                    + file.getAbsolutePath() + " (previously existed, directory, " + mainOverwrite + ", "
+                    + file.getAbsolutePath() + " (previously existed, folder, " + mainOverwrite + ", "
                     + configIndividualOverwrite + ", " + (isInclude ? "include" : "main") + " )");
             L.w("[File|D] We will be skipping this file, " + file.getAbsolutePath());
             // we just skip this file, don't throw exception since it is safe to skip and continue
