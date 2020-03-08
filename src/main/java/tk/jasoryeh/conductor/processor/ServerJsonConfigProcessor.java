@@ -461,8 +461,11 @@ public class ServerJsonConfigProcessor {
             }
         } else {
             // main configuration, also look at main config
-            if(mainOverwrite || configIndividualOverwrite) {
-                 if(file.isDirectory()) {
+            // if main says no nothing goes
+            // if main says yes individual says no, just that doesn't go
+            // if main says no individual says no, still can't go
+            if(mainOverwrite && configIndividualOverwrite) {
+                if(file.isDirectory()) {
                     if(FileUtils.delete(file)) {
                         L.i("[File|D] Deleted folder: " + file.getAbsolutePath()
                                 + " (previously existed, folder, " + mainOverwrite + ", "
