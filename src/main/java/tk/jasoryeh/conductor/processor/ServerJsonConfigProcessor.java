@@ -160,7 +160,7 @@ public class ServerJsonConfigProcessor {
                     parents, recursive, vars, isInclude);
             if(!success) {
                 // not well.
-                L.e("Failed at " + stringJsonElementEntry + " in " + parents);
+                L.e("Failed at " + stringJsonElementEntry.getKey() + " in " + parents);
                 return false;
             }
         }
