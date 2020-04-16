@@ -3,6 +3,7 @@ package tk.jasoryeh.conductor.downloaders;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.apache.commons.codec.binary.Base64;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.log.L;
 import org.apache.commons.io.FileUtils;
@@ -11,6 +12,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Retrieve files from a link
@@ -42,8 +44,22 @@ public class URLDownloader extends Downloader {
     @SneakyThrows
     @Override
     public boolean download() {
-        URL u = new URL(this.url);
+        String useThisUrl = this.url;
+
+        boolean basic = false;
+        String basicAuthString = null;
+        String locationDomain = useThisUrl.split("/")[2];
+        if(locationDomain.contains("@")) {
+            basic = true;
+            basicAuthString = locationDomain.split("@")[0];
+            useThisUrl = useThisUrl.replaceFirst(basicAuthString, "");
+        }
+
+        URL u = new URL(useThisUrl);
         HttpURLConnection huc = (HttpURLConnection) u.openConnection();
+        if(basic) {
+            huc.setRequestProperty("Authorization", new String(Base64.encodeBase64(basicAuthString.getBytes(StandardCharsets.UTF_8))));
+        }
         this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
 
         File out = new File(getTempFolder() + File.separator + this.outputFileName);
