@@ -52,7 +52,7 @@ public class URLDownloader extends Downloader {
         if(locationDomain.contains("@")) {
             basic = true;
             basicAuthString = locationDomain.split("@")[0];
-            useThisUrl = useThisUrl.replaceFirst(basicAuthString, "");
+            useThisUrl = useThisUrl.replaceFirst(basicAuthString + "@", "");
         }
 
         URL u = new URL(useThisUrl);
