@@ -56,7 +56,14 @@ public class Utility {
     }
 
     public static String remoteFileToString(String url) {
-        Get request = Http.get(url);
+        boolean basic = false;
+        String[] basicAuth = null;
+        String locationDomain = url.split("/")[2];
+        if(locationDomain.contains("@")) {
+            basic = true;
+            basicAuth = locationDomain.split("@")[0].split(":");
+        }
+        Get request = basic ? Http.get(url).basic(basicAuth[0], basicAuth[1]) : Http.get(url);
         request.header("User-Agent", "Conductor, Java");
 
         int responseCode = request.responseCode();
