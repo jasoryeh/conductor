@@ -53,12 +53,14 @@ public class URLDownloader extends Downloader {
             basic = true;
             basicAuthString = locationDomain.split("@")[0];
             useThisUrl = useThisUrl.replaceFirst(basicAuthString + "@", "");
+            this.log("Using BASIC authentication. Auth length " + basicAuthString.length());
         }
 
-        URL u = new URL(useThisUrl);
-        HttpURLConnection huc = (HttpURLConnection) u.openConnection();
+        HttpURLConnection huc = (HttpURLConnection) new URL(useThisUrl).openConnection();
         if(basic) {
-            huc.setRequestProperty("Authorization", new String(Base64.encodeBase64(basicAuthString.getBytes(StandardCharsets.UTF_8))));
+            String basicB64 = new String(Base64.encodeBase64(basicAuthString.getBytes(StandardCharsets.UTF_8)));
+            huc.setRequestProperty("Authorization", "Basic " + basicB64);
+            this.log("Appended authorizaton header, b64 len:" + basicB64.length());
         }
         this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
 
