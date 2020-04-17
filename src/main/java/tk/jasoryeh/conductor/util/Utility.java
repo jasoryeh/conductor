@@ -63,7 +63,7 @@ public class Utility {
             basic = true;
             String authString = locationDomain.split("@")[0];
             basicAuth = authString.split(":");
-            url = url.replaceFirst(authString, "");
+            url = url.replaceFirst(authString + "@", "");
         }
         Get request = basic ? Http.get(url).basic(basicAuth[0], basicAuth[1]) : Http.get(url);
         request.header("User-Agent", "Conductor, Java");
