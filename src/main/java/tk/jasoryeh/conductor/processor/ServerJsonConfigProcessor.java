@@ -122,7 +122,10 @@ public class ServerJsonConfigProcessor {
         for (int i = 0; i < trees.size(); i++) {
             JsonObject treeJson = trees.get(i);
             boolean isInclude = treeJson.has("iam") || i != 0;
-            L.d("Is include: " + isInclude + ";Data: " + treeJson);
+            L.d(i + ") Is include: " + isInclude + ";Data: " + treeJson.toString().length());
+            if(isInclude) {
+                L.d("Include name: " + treeJson.get("iam").getAsString());
+            }
             boolean proc = processTree(treeJson.get("tree").getAsJsonObject(), config, "", true, vars, isInclude);
             if (!proc && i == 0) {
                 // if our main configuration fails, we fail and shutdown
