@@ -64,6 +64,11 @@ public class URLDownloader extends Downloader {
         }
         this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
 
+        // Protect against 403 by setting default user-agent.
+        if(huc.getRequestProperty("User-Agent") == null) {
+            huc.setRequestProperty("User-Agent", "conductor, Java");
+        }
+
         File out = new File(getTempFolder() + File.separator + this.outputFileName);
 
         if (out.exists()) this.log("Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
