@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import lombok.Getter;
+import org.zeroturnaround.zip.ZipUtil;
 import tk.jasoryeh.conductor.Conductor;
 import tk.jasoryeh.conductor.config.JenkinsConfiguration;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
@@ -15,9 +15,11 @@ import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.util.FileUtils;
 import tk.jasoryeh.conductor.util.Utility;
-import org.zeroturnaround.zip.ZipUtil;
 
-import java.io.*;
+import javax.rmi.CORBA.Util;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -25,31 +27,40 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class ServerJsonConfigProcessor {
+public class ProcessorV1 extends ServerConfigurationProcessor {
 
-    /**
-     * Being processing the server_cnf.json, this will loop through everything and download/unzip/delete/etc. if necessary
-     * @param jsonObject parsed server_cnf.json
-     * @return The configuration of the current server
-     */
-    public static ServerConfig process(final JsonObject jsonObject) {
+    private final static int VERSION = 1;
+
+    public ProcessorV1() {
+        super(VERSION);
+    }
+
+    @Override
+    public ServerConfig process(JsonObject jsonObject) {
         // Server configuration (name, type, overwrite, etc.)
         ServerConfig config = new ServerConfig(jsonObject);
 
         // Server file trees to process
         ArrayList<JsonObject> trees = new ArrayList<>();
-        // Add local/main server configuration
-        trees.add(jsonObject);
-
         // Variables to replace in files
         HashMap<String, String> vars = new HashMap<>();
-        if (jsonObject.has("variables")) {
-            JsonObject variables = jsonObject.get("variables").getAsJsonObject();
-            for (Map.Entry<String, JsonElement> var : variables.entrySet()) {
-                String key = var.getKey();
-                String val = var.getValue().getAsString();
-                vars.put(key, val);
+
+        {
+            // main configuration
+
+            // Add main server configuration
+            trees.add(jsonObject);
+            // Add variables
+            if (jsonObject.has("variables")) {
+                JsonObject variables = jsonObject.get("variables").getAsJsonObject();
+                for (Map.Entry<String, JsonElement> var : variables.entrySet()) {
+                    String key = var.getKey();
+                    // variables may include references to other variables, we resolve them here.
+                    String val = VariableResolver.resolveVariables(vars, var.getValue().getAsString(), true);
+                    vars.put(key, val);
+                }
             }
+
         }
 
         /* Check for other server configurations to also process, these includes are not to overwrite current server
@@ -62,79 +73,77 @@ public class ServerJsonConfigProcessor {
          */
         if(jsonObject.has("includes")) {
             // has "includes", trying to get all of them now
-            JsonArray includes = jsonObject.get("includes").getAsJsonArray();
-            for (JsonElement include : includes) {
+            for (JsonElement include : jsonObject.get("includes").getAsJsonArray()) {
                 // get each include's location (usually a url, or local file)
-                String where = include.getAsString();
+                // also replace variables here too.
+                String where = VariableResolver.resolveVariables(vars, include.getAsString(), true);
 
-                String includeContent;
-                if(Utility.isRemote(where)) {
-                    // If the include is remotely stored, we will download it, and store it as this string
-                    includeContent = Utility.remoteFileToString(where);
-                } else {
-                    // If this include is local, we will load it into this string
-                    try {
-                        includeContent = Utility.readToString(Utility.determineFileFromPath(where));
-                        L.i(String.format("Include [%s] loaded.", where));
-                    } catch(IOException e) {
-                        L.e(String.format("Include [%s] cannot be loaded!", where));
-                        e.printStackTrace();
-                        Conductor.shutdown(true);
-                        return null;
-                    }
-                }
+                L.i(String.format("Reading [%s]", where));
+                try {
+                    //               if remote,            then: download remote to this var;  otherwise: read the file.
+                    String includeContent = Utility.isRemote(where) ? Utility.remoteFileToString(where) : Utility.readToString(Utility.determineFileFromPath(where));
 
-                // Parse include string to json element -> object, and add it to what we will process
-                JsonObject importedInclude = new JsonParser().parse(includeContent).getAsJsonObject();
-                trees.add(importedInclude);
+                    // Parse include string to json element -> object, and add it to what we will process
+                    JsonObject importedInclude = new JsonParser().parse(includeContent).getAsJsonObject();
+                    trees.add(importedInclude);
 
-                // import variables from these includes
-                if (importedInclude.has("variables")) {
-                    // check if we want included variables to overwrite our main server configuration's
-                    boolean overwriteVariables = importedInclude.has("overwrite_variables")
-                            && importedInclude.get("overwrite_variables").getAsBoolean();
-                    JsonObject variables = importedInclude.get("variables").getAsJsonObject();
-                    for (Map.Entry<String, JsonElement> var : variables.entrySet()) {
-                        String key = var.getKey();
-                        String val = var.getValue().getAsString();
-                        // skip existing/or not
-                        if(!vars.containsKey(key) || overwriteVariables) {
-                            vars.put(key, val);
-                        } else {
-                            L.i("Skipping include variable (duplicate): " + key + "=>" + val);
+                    // import variables from these includes
+                    if (importedInclude.has("variables")) {
+                        // check if we want included variables to overwrite our main server configuration's
+                        boolean overwriteVariables = importedInclude.has("overwrite_variables")
+                                && importedInclude.get("overwrite_variables").getAsBoolean();
+                        JsonObject variables = importedInclude.get("variables").getAsJsonObject();
+                        for (Map.Entry<String, JsonElement> var : variables.entrySet()) {
+                            String key = var.getKey();
+
+                            // we resolve variables to previously existing ones.
+                            String val = VariableResolver.resolveVariables(vars, var.getValue().getAsString(), true);
+
+                            // skip existing/or not
+                            if(!vars.containsKey(key) || overwriteVariables) {
+                                vars.put(key, val);
+                            } else {
+                                L.i("Skipping include variable (duplicate): " + key + "=>" + val);
+                            }
                         }
                     }
+
+                    L.i(String.format("Read and loaded [%s]", where));
+                } catch(Exception e) {
+                    L.e(String.format("Include [%s] cannot be loaded!", where));
+                    e.printStackTrace();
+                    Conductor.shutdown(true);
+                    return null;
                 }
             }
         }
 
-        if(jsonObject.has("launchType")) { // default it "process"
-            config.setLaunchType(ServerConfig.LaunchType
-                    .valueOf(
-                            jsonObject.get("launchType")
-                                    .getAsString().toUpperCase()
-                    )
-            );
-        }
+        L.i("Final vars: " + vars.toString());
 
 
         // Files, by numbers because we want to go in order (our main configuration should be first)
         for (int i = 0; i < trees.size(); i++) {
-            JsonObject treeJson = trees.get(i);
-            boolean isInclude = treeJson.has("iam") || i != 0;
-            L.d(i + ") Is include: " + isInclude + ";Data: " + treeJson.toString().length());
-            if(isInclude) {
-                L.d("Include name: " + treeJson.get("iam").getAsString());
-            }
-            boolean proc = processTree(treeJson.get("tree").getAsJsonObject(), config, "", true, vars, isInclude);
-            if (!proc && i == 0) {
-                // if our main configuration fails, we fail and shutdown
-                L.e("Something went wrong, shutting down.");
-                Conductor.shutdown(true);
-            } else if(!proc) {
-                // if an include fails, we also fail and shutdown
-                String icl = treeJson.has("iam") ? treeJson.get("iam").getAsString() : treeJson.toString();
-                L.e("Something went wrong with processing an include. Include: " + icl);
+            JsonObject jsonConfig = trees.get(i);
+            L.i("Working on job " + i + "... now in progress...");
+
+            boolean isInclude = jsonConfig.has("iam") || i != 0;
+            boolean processedSuccessfully = processTree(jsonConfig.get("tree").getAsJsonObject(),
+                    config, "", true, vars, isInclude);
+
+            L.i("Job finished, returned success value: " + processedSuccessfully);
+
+            if (!processedSuccessfully) {
+                L.e("Something went wrong here, we are playing it safe and shutting down this updater so you can check what's going on.");
+                L.e("Failed to process a job, details follow:");
+                L.e("Job at index: " + i);
+                L.e("Is include: " + isInclude);
+                if(isInclude) {
+                    L.e("Include: " + (jsonConfig.has("iam") ? jsonConfig.get("iam").toString() : "<no name>"));
+                    L.e("Include output: " + jsonConfig.toString());
+                } else {
+                    L.e("Failed at a main configuration file. This means you should check the main configuration for errors.");
+                }
+
                 Conductor.shutdown(true);
             }
         }
@@ -142,48 +151,36 @@ public class ServerJsonConfigProcessor {
         return config;
     }
 
-    /**
-     * Process trees of files
-     * @param jsonObject object of tree
-     * @param conf Server configuration
-     * @param parents Parents of tree
-     * @param recursive whether to not to go through all of them (auto-loop)
-     * @return Success/fail
-     */
-    private static boolean processTree(final JsonObject jsonObject, ServerConfig conf, String parents,
-                                       boolean recursive, Map<String, String> vars, boolean isInclude) {
-        // loop elements in tree
-        for (Map.Entry<String, JsonElement> stringJsonElementEntry : jsonObject.entrySet()) {
-            // elements should be objects, not arrays or values, etc. so we skip them
-            if(!stringJsonElementEntry.getValue().isJsonObject()) continue;
+    @Override
+    public boolean processTree(JsonObject jsonObject, ServerConfig conf, String parents, boolean recursive, Map<String, String> vars, boolean isInclude) {
+        // loop elements in tree/folder
+        for (Map.Entry<String, JsonElement> treeEntry : jsonObject.entrySet()) {
+            String entryKey = treeEntry.getKey();
+            JsonElement entryValue = treeEntry.getValue();
 
-            // process this element
-            L.i("Working on " + stringJsonElementEntry.getKey() + " in " + parents);
-            boolean success = processObject(stringJsonElementEntry.getKey(), stringJsonElementEntry.getValue().getAsJsonObject(), conf,
-                    parents, recursive, vars, isInclude);
-            if(!success) {
-                // not well.
-                L.e("Failed at " + stringJsonElementEntry.getKey() + " in " + parents);
-                return false;
+            if(!entryValue.isJsonObject()) {
+                L.w("Skipping non JSON entry: " + entryKey + " in " + parents);
+            } else {
+                // process this element
+                L.i("On JSON entry: " + entryKey + " in " + parents);
+                boolean success = processObject(treeEntry.getKey(), entryValue.getAsJsonObject(), conf,
+                        parents, recursive, vars, isInclude);
+                if(!success) {
+                    // not well.
+                    L.e("Failed at " + entryKey + " in " + parents);
+                    return false;
+                }
             }
         }
+
         // if everything goes well, we should get back to here
         return true;
     }
 
-    /**
-     * Process files/folders in `tree`
-     * @param fileName name of file
-     * @param obj json object of the file/folder
-     * @param conf server configuration object
-     * @param parents folder to put the file/folder under ex. plugins/Some/Secret/Folder <- will place for example file test.txt in NO slashes beginning
-     * @param recursive go through each objects under all the other trees (auto-loop)
-     * @return success or not
-     */
-    private static boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents,
-                                         boolean recursive, Map<String, String> vars, boolean isInclude) {
-        String objectCWD = Utility.cwdAndSep() +
-                (parents.equalsIgnoreCase("") ? "" : (File.separator + parents + File.separator));
+    @Override
+    public boolean processObject(String fileName, JsonObject obj, ServerConfig conf, String parents, boolean recursive, Map<String, String> vars, boolean isInclude) {
+        String objectCWD = Utility.cwdAndSep() + // current working directory
+                (parents.isEmpty() ? "" : (File.separator + parents + File.separator)); // directory we are in
         File objectFile = new File(objectCWD + fileName);
 
         L.empty(); // newline, secretly identify separate objects.
@@ -259,7 +256,7 @@ public class ServerJsonConfigProcessor {
                 switch(type) {
                     case URL:
                         try {
-                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName,
+                            URLDownloader ud = new URLDownloader(VariableResolver.resolveVariables(vars, retrieval.get("url").getAsString(), true), fileName,
                                     conf.isOverwrite(), credentials);
                             ud.download();
                             // Unzip
@@ -306,22 +303,15 @@ public class ServerJsonConfigProcessor {
             if (!retrieval.get("retrieve").getAsBoolean()) {
                 // If defined in configuration, we can only write text based file types
                 try {
-                    if(objectFile.createNewFile() && (obj.has("contents") && obj.get("contents").getAsJsonObject().has("content"))) {
+                    if(objectFile.createNewFile()
+                            && (obj.has("contents")
+                            && obj.get("contents").getAsJsonObject().has("content"))) {
                         // Tree only, folders can't have "text content"
                         FileOutputStream fos = new FileOutputStream(objectFile);
-                        String out = obj.get("contents").getAsJsonObject().get("content").getAsString()
-                                .replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
-
-                        // detect if we shouldn't apply variables, don't do it if we said no, do it if we didn't say anything
                         boolean applyVars = !obj.has("applyVariables") || obj.get("applyVariables").getAsBoolean();
-                        if(applyVars) {
-                            for (Map.Entry<String, String> entry : vars.entrySet()) {
-                                String lookFor = Pattern.quote("{{" + entry.getKey() + "}}");
-                                out = out.replaceAll(lookFor, entry.getValue());
-                            }
-                        }
+                        String rawContent = obj.get("contents").getAsJsonObject().get("content").getAsString();
 
-                        fos.write(out.getBytes());
+                        fos.write(VariableResolver.resolveVariables(vars, rawContent, applyVars).getBytes());
                         fos.close();
                     }
                     return true;
@@ -346,7 +336,7 @@ public class ServerJsonConfigProcessor {
                 switch(type) {
                     case URL:
                         try {
-                            URLDownloader ud = new URLDownloader(retrieval.get("url").getAsString(), fileName,
+                            URLDownloader ud = new URLDownloader(VariableResolver.resolveVariables(vars, retrieval.get("url").getAsString(), true), fileName,
                                     conf.isOverwrite(), credentials);
                             ud.download();
 
@@ -382,7 +372,7 @@ public class ServerJsonConfigProcessor {
                             if(jenkinsAuth.has("host") && jenkinsAuth.has("username")
                                     && jenkinsAuth.has("passwordOrToken")) {
                                 jenkinsConfig = new JenkinsConfiguration(
-                                        jenkinsAuth.get("host").getAsString(),
+                                        VariableResolver.resolveVariables(vars, jenkinsAuth.get("host").getAsString(), true),
                                         jenkinsAuth.get("username").getAsString(),
                                         jenkinsAuth.get("passwordOrToken").getAsString());
                             } else {
@@ -431,7 +421,7 @@ public class ServerJsonConfigProcessor {
      * @return true - should continue (ready to write to); false - don't process this file any further (shouldn't write to)
      * @throws IOException thrown if we should stop everything, equivalent to a false, but worse
      */
-    public static boolean prepareFile(File file, boolean mainOverwrite, boolean configIndividualOverwrite, boolean isInclude) throws IOException {
+    private boolean prepareFile(File file, boolean mainOverwrite, boolean configIndividualOverwrite, boolean isInclude) throws IOException {
         if(!file.exists()) {
             // do nothing if it already is empty
             L.i("The file " + file.getAbsolutePath() + " doesn't exist, and we didn't delete anything " +
@@ -530,35 +520,6 @@ public class ServerJsonConfigProcessor {
             L.w("[File|D] We will be skipping this file, " + file.getAbsolutePath());
             // we just skip this file, don't throw exception since it is safe to skip and continue
             return false;
-        }
-    }
-
-    public enum RetrieveType {
-        URL("url"), JENKINS("jenkins"), SPECIFIED("specified");
-
-        @Getter
-        private final String equivalent;
-
-        RetrieveType(String equivalent) {
-            this.equivalent = equivalent;
-        }
-    }
-    public enum ServerType {
-        JAVA("java", "-jar"),
-        PYTHON("python", ""),
-        PYTHON3("python3", ""),
-        PYTHON2("python2", ""),
-        NODEJS("node", ""),
-        BASH("bash", "");
-
-        @Getter
-        private final String equivalent;
-        @Getter
-        private final String params;
-
-        ServerType(String equivalent, String params) {
-            this.equivalent = equivalent;
-            this.params = params;
         }
     }
 }

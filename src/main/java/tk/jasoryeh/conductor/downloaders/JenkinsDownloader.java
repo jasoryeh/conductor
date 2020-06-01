@@ -72,6 +72,10 @@ public class JenkinsDownloader extends Downloader {
         this.jenkins = this.auth.isAuthless() ? new JenkinsServer(new URI(this.auth.getHost()))
                 : new JenkinsServer(new URI(this.auth.getHost()), this.auth.getUser(), this.auth.getAuth());
 
+        if(this.jenkins.getJobs().get(this.job) == null) {
+            throw new IllegalArgumentException("Unknown job " + this.job + ": Job not found.");
+        }
+
         JobWithDetails details = this.jenkins.getJobs().get(this.job).details();
 
         List<Artifact> artifacts = number == -1 ? details.getLastSuccessfulBuild().details().getArtifacts()

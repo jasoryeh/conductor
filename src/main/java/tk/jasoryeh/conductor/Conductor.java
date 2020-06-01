@@ -7,7 +7,8 @@ import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.log.L;
-import tk.jasoryeh.conductor.processor.ServerJsonConfigProcessor;
+import tk.jasoryeh.conductor.processor.ServerConfigurationProcessor;
+import tk.jasoryeh.conductor.processor.ServerType;
 import tk.jasoryeh.conductor.util.Experimental;
 import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
@@ -19,6 +20,7 @@ import org.joda.time.format.PeriodFormatterBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Optional;
 
 public class Conductor extends Boot {
     @Getter
@@ -53,15 +55,19 @@ public class Conductor extends Boot {
             return;
         }
 
-        ServerConfig conf = ServerJsonConfigProcessor.process(obj);
+        ServerConfigurationProcessor.init();
+        Optional<ServerConfigurationProcessor> processor = ServerConfigurationProcessor.getProcessor(ServerConfigurationProcessor.getJSONVersion(obj));
 
-        if(conf == null) {
-            L.e("Unable to process server properties");
+        ServerConfig config;
+        if(processor.isPresent()) {
+            config = processor.get().process(obj);
+        } else {
+            L.e("Unable to process server configuration");
             shutdown(true);
             return;
         }
 
-        executeLaunch(conf, obj);
+        executeLaunch(config, obj);
     }
 
     /**
@@ -71,7 +77,7 @@ public class Conductor extends Boot {
      */
     public void executeLaunch(ServerConfig conf, JsonObject obj) {
         if(conf.isSkipLaunch()) {
-            L.i("Skipping launch... Updater done. (skipLaunch)");
+            L.i("Updater finished.");
             return;
         }
 
@@ -83,7 +89,7 @@ public class Conductor extends Boot {
 
         try {
             if(launchType == ServerConfig.LaunchType.CLASSLOADER) {
-                if(conf.getType() != ServerJsonConfigProcessor.ServerType.JAVA) {
+                if(conf.getType() != ServerType.JAVA) {
                     throw new UnsupportedOperationException("We cannot run non-java applications via class loader.");
                 }
 

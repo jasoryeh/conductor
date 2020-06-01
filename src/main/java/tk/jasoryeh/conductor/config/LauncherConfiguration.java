@@ -146,7 +146,7 @@ public class LauncherConfiguration {
             try {
                 // read from file we found above...
                 return Utility.readToString(serverConfig);
-            } catch(IOException e) {
+            } catch(Exception e) {
                 // can't parse json string...
                 L.e("An unexpected error has occurred while reading your server json configuration:");
                 e.printStackTrace();

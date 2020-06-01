@@ -1,5 +1,6 @@
 package tk.jasoryeh.conductor.util;
 
+import lombok.SneakyThrows;
 import org.javalite.http.Get;
 import org.javalite.http.Http;
 import tk.jasoryeh.conductor.log.L;
@@ -13,6 +14,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public class Utility {
     public static Path getCWD() {
@@ -51,7 +53,8 @@ public class Utility {
         return ret.toString();
     }
 
-    public static String readToString(File f) throws IOException {
+    @SneakyThrows
+    public static String readToString(File f) {
         return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
     }
 
@@ -97,5 +100,15 @@ public class Utility {
 
     public static File determineFileFromPath(String location) {
         return new File(location).exists() ? new File(location) : new File(Utility.cwdAndSep() + location);
+    }
+
+    public static Optional<String> getEnv(String key) {
+        try {
+            return Optional.ofNullable(System.getenv(key));
+        } catch(Exception e) {
+            L.w("Unknown error while retrieving environment variable");
+            e.printStackTrace();
+            return Optional.empty();
+        }
     }
 }
