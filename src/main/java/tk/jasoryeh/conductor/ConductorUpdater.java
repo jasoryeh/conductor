@@ -47,8 +47,8 @@ public class ConductorUpdater {
     public static boolean update() {
         log("Attempting to retrieve latest update of conductor!");
 
-        LauncherConfiguration lCon = LauncherConfiguration.get();
-        LauncherConfiguration.LauncherUpdateFromConfiguration self = lCon.getSelfUpdate();
+        LauncherConfiguration launchConfig = LauncherConfiguration.get();
+        LauncherConfiguration.LauncherUpdateFromConfiguration self = launchConfig.getSelfUpdate();
         if(!self.isShouldUpdate()) {
             log("Aborting, not allowed to update per configuration rule.");
             return false;
@@ -68,7 +68,7 @@ public class ConductorUpdater {
                     int num = Integer.valueOf(split[2]);
 
                     conductorDownloader = new JenkinsDownloader(
-                            lCon.getJenkins(),
+                            launchConfig.getJenkins(),
                             job,
                             artifact,
                             num,

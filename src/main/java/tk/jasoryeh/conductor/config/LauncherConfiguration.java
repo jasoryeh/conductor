@@ -36,12 +36,12 @@ public class LauncherConfiguration {
     public LauncherConfiguration(PropertiesConfiguration c) {
         this.raw = c;
 
-        this.name = c.getString("name", "unknown-" + UUID.randomUUID().toString().split("-")[0]);
-        this.mode = LauncherMode.from(c.getString("mode", "default"));
-        this.configurationLocation = c.getString("config");
+        this.name = this.raw.getString("name", "unknown-" + UUID.randomUUID().toString().split("-")[0]);
+        this.mode = LauncherMode.from(this.raw.getString("mode", "default"));
+        this.configurationLocation = this.raw.getString("config");
 
-        this.selfUpdate = new LauncherUpdateFromConfiguration(c);
-        this.jenkins = new JenkinsConfiguration(c);
+        this.selfUpdate = new LauncherUpdateFromConfiguration(this.raw);
+        this.jenkins = new JenkinsConfiguration(this.raw);
     }
 
     public class LauncherUpdateFromConfiguration {
@@ -53,7 +53,7 @@ public class LauncherConfiguration {
         private final String updateData;
 
         private LauncherUpdateFromConfiguration(PropertiesConfiguration c) {
-            this.shouldUpdate = Boolean.valueOf(c.getString("selfUpdate"));
+            this.shouldUpdate = Boolean.parseBoolean(c.getString("selfUpdate"));
 
             String selfUpdateFrom = c.getString("selfUpdateFrom");
             if(this.shouldUpdate && (selfUpdateFrom == null || !selfUpdateFrom.contains(":"))) {

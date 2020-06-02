@@ -8,10 +8,7 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.*;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Represents one configuration file
@@ -29,6 +26,8 @@ public class PropertiesConfiguration {
     private File configurationFile;
     @Getter
     private Properties rawProperties;
+    @Getter
+    private boolean isEnvironmentallyDeclared = false;
 
     /**
      * Configuration handler.
@@ -60,29 +59,38 @@ public class PropertiesConfiguration {
      * Load the file.
      */
     private void load() throws IOException {
-        File file = new File(this.file);
-        this.configurationFile = file;
+        this.configurationFile = new File(this.file);
+        this.isEnvironmentallyDeclared = false;
 
-        if(!file.exists()) {
+        if(this.configurationFile.exists()) {
             Logger.getLogger().info("File " + this.file + " doesn't exist.");
-            if(this.allowCreation) {
+
+            if(!this.allowCreation) {
+                Logger.getLogger().warn("Told not to create. Proceeding anyways.");
+            }
+
+            return;
+        } else {
+
+            Optional<String> opt1 = Optional.ofNullable(System.getenv("CONDUCTOR_ISCONFIGLESS"));
+            boolean isConfigLess = opt1.isPresent() && Boolean.parseBoolean(opt1.get());
+
+            if(isConfigLess) {
+                Logger.getLogger().info("Conductor configuration appears to be environmentally defined. We will load this later.");
+                this.isEnvironmentallyDeclared = true;
+            } else {
                 Logger.getLogger().info("Trying to create " + this.file);
+
                 try {
                     URL url = getClass().getResource("/" + this.file);
                     File fo = new File(Utility.getCWD() + File.separator + this.file);
-
                     FileUtils.copyURLToFile(url, fo);
                 } catch(Exception e) {
-                    Logger.getLogger().warn("No default config for " + this.file + " exists, creating blank.");
-                    if(file.createNewFile()) {
-                        throw new IOException("Unable to create the file \"" + this.file + "\". Reason unknown.");
-                    } else {
-                        Logger.getLogger().info("Creation of " + this.file + " completed.");
-                    }
+                    Logger.getLogger().warn("No default config for " + this.file + " exists: "
+                            + (this.configurationFile.createNewFile() ? "empty file created in its place" : "failed ot make a file"));
                 }
-            } else {
-                Logger.getLogger().warn("Told not to create. Proceeding anyways.");
             }
+
         }
 
 
@@ -94,6 +102,10 @@ public class PropertiesConfiguration {
      * @throws IOException something io-related
      */
     private void readFileToProperties() throws FileNotFoundException, IOException {
+        if(this.isEnvironmentallyDeclared) {
+            return; // nothing to read if this is from an environment
+        }
+
         FileReader configReader = new FileReader(this.configurationFile);
         this.rawProperties = new Properties();
         this.rawProperties.load(configReader);
@@ -124,7 +136,7 @@ public class PropertiesConfiguration {
      * @return value
      */
     public String getString(String key, String defaultVal) {
-        return this.rawProperties.getProperty(key, defaultVal);
+        return this.getProperty(key, defaultVal);
     }
 
     /**
@@ -133,7 +145,7 @@ public class PropertiesConfiguration {
      * @param value value to store with key
      */
     public void setString(String key, String value) {
-        this.rawProperties.setProperty(key, value);
+        this.setProperty(key, value);
     }
 
     /**
@@ -143,6 +155,28 @@ public class PropertiesConfiguration {
      */
     public boolean entryExists(String key) {
         String u = "oof" + UUID.randomUUID() + "oof";
-        return !this.rawProperties.getProperty(key, u).equalsIgnoreCase(u);
+        return !this.getProperty(key, u).equalsIgnoreCase(u);
+    }
+
+    private String getProperty(String key, String deflt) {
+        if(this.isEnvironmentallyDeclared) {
+            Optional<String> getenv = Optional.ofNullable(System.getenv("CONDUCTOR_" + (key.replaceAll(" ", "_").toUpperCase())));
+            if(getenv.isPresent()) {
+                return getenv.get();
+            } else {
+                return deflt;
+            }
+        } else {
+            return this.rawProperties.getProperty(key, deflt);
+        }
+    }
+
+    private boolean setProperty(String key, String val) {
+        if(this.isEnvironmentallyDeclared) {
+            return false; // we aren't going to write to the environment.
+        } else {
+            this.rawProperties.setProperty(key, val);
+            return true;
+        }
     }
 }
