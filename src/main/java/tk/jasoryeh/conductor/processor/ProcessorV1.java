@@ -336,8 +336,11 @@ public class ProcessorV1 extends ServerConfigurationProcessor {
                 switch(type) {
                     case URL:
                         try {
-                            URLDownloader ud = new URLDownloader(VariableResolver.resolveVariables(vars, retrieval.get("url").getAsString(), true), fileName,
-                                    conf.isOverwrite(), credentials);
+                            URLDownloader ud = new URLDownloader(
+                                VariableResolver.resolveVariables(vars, retrieval.get("url").getAsString(), true),
+                                fileName,
+                                conf.isOverwrite(),
+                                credentials);
                             ud.download();
 
                             Files.copy(
@@ -379,8 +382,13 @@ public class ProcessorV1 extends ServerConfigurationProcessor {
                                 jenkinsConfig = LauncherConfiguration.get().getJenkins();
                             }
 
-                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(jenkinsConfig, job, artifact,
-                                    jobNum, fileName, true);
+                            JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(
+                                jenkinsConfig,
+                                VariableResolver.resolveVariables(vars, job, true),
+                                VariableResolver.resolveVariables(vars, artifact, true),
+                                jobNum,
+                                fileName,
+                                true);
                             boolean jenkinsOK = jenkinsDownloader.download();
                             if(!jenkinsOK) {
                                 L.e("Unable to download artifact for " + objectFile.getAbsolutePath());
