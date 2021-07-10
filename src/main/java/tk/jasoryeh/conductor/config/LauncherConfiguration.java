@@ -11,7 +11,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 import lombok.Getter;
 import tk.jasoryeh.conductor.ConductorMain;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.Log;
 import tk.jasoryeh.conductor.util.Utility;
 
 public class LauncherConfiguration {
@@ -135,11 +135,11 @@ public class LauncherConfiguration {
               ConductorMain.class.getResourceAsStream("/example.launcher.config.json"),
               Paths.get(Utility.getCWD().toString() + File.separator + this.configurationLocation),
               StandardCopyOption.REPLACE_EXISTING);
-          L.e("Configuration didn't exist, copied a fresh server configuration to "
+          Log.get("svconfig").error("Configuration didn't exist, copied a fresh server configuration to "
               + this.configurationLocation);
         } catch (IOException io) {
           // can't find and can't copy example
-          L.e("Unable to copy an example configuration");
+          Log.get("svconfig").error("Unable to copy an example configuration");
           io.printStackTrace();
         }
         return null;
@@ -150,7 +150,7 @@ public class LauncherConfiguration {
         return Utility.readToString(serverConfig);
       } catch (Exception e) {
         // can't parse json string...
-        L.e("An unexpected error has occurred while reading your server json configuration:");
+        Log.get("svconfig").error("An unexpected error has occurred while reading your server json configuration:");
         e.printStackTrace();
         return null;
       }
@@ -167,15 +167,15 @@ public class LauncherConfiguration {
     try {
       return new JsonParser().parse(parseThisJson).getAsJsonObject();
     } catch (JsonParseException jsonE) {
-      L.e("Your server json configuration is misconfigured. Please double check for errors:");
+      Log.get("svconfig").error("Your server json configuration is misconfigured. Please double check for errors:");
       jsonE.printStackTrace();
 
       // fail.
       return null;
     } catch (Exception e) {
       // Null pointer for none?
-      L.e("Your serverlauncher.properties is misconfigured.");
-      L.e("An unexpected error has occurred while processing your server json configuration:");
+      Log.get("svconfig").error("Your serverlauncher.properties is misconfigured.");
+      Log.get("svconfig").error("An unexpected error has occurred while processing your server json configuration:");
       e.printStackTrace();
 
       // fail.

@@ -12,9 +12,18 @@ import java.util.Optional;
 import lombok.SneakyThrows;
 import org.javalite.http.Get;
 import org.javalite.http.Http;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.Log;
 
 public class Utility {
+
+  public static File cwdFile() {
+    return new File("");
+  }
+
+  @SneakyThrows
+  public static File currentFile() {
+    return new File(Utility.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+  }
 
   public static Path getCWD() {
     return FileSystems.getDefault().getPath(".").toAbsolutePath();
@@ -78,7 +87,7 @@ public class Utility {
 
     int responseCode = request.responseCode();
     if (!String.valueOf(responseCode).startsWith("2")) {
-      L.w("[Download] Remote server at " + url + " returned a " + responseCode + " response, " +
+      Log.get("util").warn("[Download] Remote server at " + url + " returned a " + responseCode + " response, " +
           "we ignore this, but you should see this.");
     }
     return request.text();
@@ -113,7 +122,7 @@ public class Utility {
     try {
       return Optional.ofNullable(System.getenv(key));
     } catch (Exception e) {
-      L.w("Unknown error while retrieving environment variable");
+      Log.get("util").warn("Unknown error while retrieving environment variable");
       e.printStackTrace();
       return Optional.empty();
     }

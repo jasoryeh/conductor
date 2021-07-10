@@ -7,17 +7,19 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.jar.JarFile;
-import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.Conductor;
+import tk.jasoryeh.conductor.Log;
 
 public class Experimental {
 
   public static boolean clLoadMain(File jarFile)
       throws IllegalAccessException, IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
     /* Experimental jar starter. */
-    Logger.getLogger().info("Experimental, using classloader to start jar file.");
+    Log logger = Conductor.getInstance().getLogger();
+    logger.info("Experimental, using classloader to start jar file.");
 
     if (!jarFile.exists() || !jarFile.canRead()) {
-      Logger.getLogger().error("Invalid jar file, falling back!");
+      logger.error("Invalid jar file, falling back!");
       return false;
     }
 
@@ -31,7 +33,7 @@ public class Experimental {
     //Class<?> mainClass = customLoader.loadClass(mainClassPath);
     Class<?> mainClass = classLoader.loadClass(mainClassPath);
     if (mainClass == null) {
-      Logger.getLogger().error("Invalid jar file, falling back!");
+      logger.error("Invalid jar file, falling back!");
       return false;
     }
 
@@ -39,7 +41,7 @@ public class Experimental {
     Method main = mainClass.getDeclaredMethod("main", new Class[]{String[].class});
     main.invoke(null, new Object[]{new String[0]});
 
-    Logger.getLogger().info("Finished.");
+    logger.info("Finished.");
     /* END */
     return true;
   }

@@ -3,7 +3,7 @@ package tk.jasoryeh.conductor.downloaders;
 import java.io.File;
 import lombok.Getter;
 import lombok.Setter;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.Log;
 import tk.jasoryeh.conductor.util.Utility;
 
 /**
@@ -36,7 +36,7 @@ public abstract class Downloader {
 
   public boolean isDownloaded() {
     if (downloadedFile != null && !downloadedFile.exists()) {
-      L.d("Downloaded file wasn't null, but doesn't exist! Reverting to null.");
+      Log.get("downloader").debug("Downloaded file wasn't null, but doesn't exist! Reverting to null.");
       downloadedFile = null;
     }
     return downloadedFile != null && downloadedFile.exists();
@@ -66,7 +66,7 @@ public abstract class Downloader {
 
   // static
   @Setter
-  private static File tempFolder = new File(Utility.getCWD() + File.separator + "launcher_tmp");
+  private static File tempFolder = new File(Utility.cwdFile(), "launcher_tmp");
 
   public static File getTempFolder() {
     tempFolder.mkdirs();

@@ -14,7 +14,6 @@ import org.joda.time.format.PeriodFormatterBuilder;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.config.ServerConfig;
 import tk.jasoryeh.conductor.downloaders.Downloader;
-import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.processor.ServerConfigurationProcessor;
 import tk.jasoryeh.conductor.processor.ServerType;
 import tk.jasoryeh.conductor.util.Experimental;
@@ -26,22 +25,31 @@ public class Conductor extends Boot {
   @Getter
   @Setter
   private static Conductor instance;
+
   @Getter
   private LauncherConfiguration launcherConfig;
 
   /**
    * With the creation of this, we auto call onEnable and start the process
    */
-  Conductor() {
-    L.i("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
-    L.i("Getting ready to work...");
+  Conductor(Log logger) {
+    super(logger.sublevel("main"));
+    Conductor existingInst = Conductor.getInstance();
+    if (existingInst != null) {
+      existingInst.onDisable();
+    }
 
+    this.logger.info("<< --- < " + TerminalColors.GREEN_BOLD + "Conductor" + TerminalColors.RESET + " > --- >>");
+    this.debugData();
+  }
+
+  public void debugData() {
     String argumentFull = String.join(" ", Utility.getJVMArguments());
-    L.d("Arguments - " + argumentFull);
-    L.d("File Test - " + new File("test").getAbsolutePath());
-    L.d("File separator - " + File.separator);
-    L.i("Running in - " + System.getProperty("user.dir"));
-    L.i("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
+    this.logger.debug("Arguments - " + argumentFull);
+    this.logger.debug("File Test - " + new File("test").getAbsolutePath());
+    this.logger.debug("File separator - " + File.separator);
+    this.logger.debug("Running in - " + System.getProperty("user.dir"));
+    this.logger.debug("Temporary storage in - " + Downloader.getTempFolder().getAbsolutePath());
   }
 
   @Override
@@ -50,7 +58,7 @@ public class Conductor extends Boot {
     JsonObject obj = this.launcherConfig.processJsonConfiguration();
 
     if (obj == null) {
-      L.e("Unable to process launcher properties");
+      this.logger.error("Unable to process launcher properties");
       shutdown(true);
       return;
     }
@@ -63,12 +71,16 @@ public class Conductor extends Boot {
     if (processor.isPresent()) {
       config = processor.get().process(obj);
     } else {
-      L.e("Unable to process server configuration");
+      this.logger.error("Unable to process server configuration");
       shutdown(true);
       return;
     }
 
-    executeLaunch(config, obj);
+    if(!config.isSkipLaunch()) {
+      this.logger.info("Starting application...");
+      this.executeLaunch(config, obj);
+    }
+    this.logger.info("End Conductor.");
   }
 
   /**
@@ -78,11 +90,6 @@ public class Conductor extends Boot {
    * @param obj  Launcher configuration
    */
   public void executeLaunch(ServerConfig conf, JsonObject obj) {
-    if (conf.isSkipLaunch()) {
-      L.i("Updater finished.");
-      return;
-    }
-
     ServerConfig.LaunchType launchType = conf.getLaunchType();
     boolean complete = false;
 
@@ -96,15 +103,15 @@ public class Conductor extends Boot {
               "We cannot run non-java applications via class loader.");
         }
 
-        L.i("Trying experimental method, falling back if this fails");
-        L.i("Starting server... Waiting for completion.");
+        this.logger.info("Trying experimental method, falling back if this fails");
+        this.logger.info("Starting server... Waiting for completion.");
         complete = Experimental.clLoadMain(conf.getFileForLaunch());
       }
 
       if ((!complete &&
           (launchType == ServerConfig.LaunchType.PROCESS
               || launchType == ServerConfig.LaunchType.CLASSLOADER))) {
-        L.i("Using ProcessBuilder method.");
+        this.logger.info("Using ProcessBuilder method.");
 
         String program = new File(Utility.getCWD().toString()).toURI()
             .relativize(conf.getFileForLaunch().toURI()).getPath();
@@ -121,30 +128,30 @@ public class Conductor extends Boot {
         }
         params.append("-DconductorUpdated=yes -DstartedWithConductor=yes");
 
-        L.d("-> Process configuration");
-        L.d(params.toString(), program);
-        L.d("-> Starting process...");
+        this.logger.debug("-> Process configuration");
+        this.logger.debug(params.toString(), program);
+        this.logger.debug("-> Starting process...");
 
         ProcessBuilder processBuilder = new ProcessBuilder(conf.getType().getEquivalent(),
             params.toString(), conf.getType().getParams(), program);
-        L.d(String.join(" ", processBuilder.command().toArray(new String[]{"Command: "})));
+        this.logger.debug(String.join(" ", processBuilder.command().toArray(new String[]{"Command: "})));
         Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
             .redirectOutput(ProcessBuilder.Redirect.INHERIT)
             .redirectInput(ProcessBuilder.Redirect.INHERIT)
             .start();
 
-        L.i("Started server... Waiting for completion of " + conf.getName());
+        this.logger.info("Started server... Waiting for completion of " + conf.getName());
         response = process.waitFor();
       } else {
         throw new UnsupportedOperationException("Launch type not supported.");
       }
     } catch (IOException | InterruptedException | InvocationTargetException | NoSuchMethodException | IllegalAccessException | ClassNotFoundException e) {
-      L.w("An error occurred while starting the programs.");
+      this.logger.warn("An error occurred while starting the programs.");
       e.printStackTrace();
     }
 
     DateTime timeEnd = DateTime.now();
-    L.i("Process ended. Exit code " + response + (response == -2 ? "(possible internal exit code)"
+    this.logger.info("Process ended. Exit code " + response + (response == -2 ? "(possible internal exit code)"
         : ""));
 
     Period difference = new Period(timeStart, timeEnd);
@@ -162,28 +169,30 @@ public class Conductor extends Boot {
 
     String elapsed = formatter.print(difference);
 
-    L.i("Ran for " + elapsed);
-    L.i("Shut down.");
+    this.logger.info("Ran for " + elapsed);
+    this.logger.info("Shut down.");
 
     if (response == 251) {
-      L.i("Response code of 251 detected (restart)");
-      L.i("Attempting restart.");
+      this.logger.info("Response code of 251 detected (restart)");
+      this.logger.info("Attempting restart.");
       executeLaunch(conf, obj);
     }
   }
 
   public void onDisable() {
+    // pass
   }
 
   public static void shutdown(boolean err) {
+    Conductor instance = getInstance();
     try {
-      getInstance().onDisable();
+      instance.onDisable();
     } catch (Exception e) {
       // ignore, it's only here to ensure the shutdown is always happening
     }
 
     System.exit(err ? 1 : 0);
-    L.i("bye.");
+    instance.logger.info("Bye.");
   }
 
   /**
@@ -197,38 +206,37 @@ public class Conductor extends Boot {
 
 
   // static
-  public static ClassLoader parentLoader;
+  public static ClassLoader PARENT_LOADER;
 
   /**
-   * Old quick start for skipping updates
+   * Old quick start for skipping updates or if updates were not run.
    */
   @Deprecated
   public static void quickStart() {
-    L.i("Old quick start! Please update your conductor!");
+    Log.get("app").warn("Conductor was either started directly without "
+        + "update or was started from an old version, if this is the case consider updating!");
     quickStart(null);
   }
 
   /**
-   * To be called to skip updates
+   * To be called to skip the update process (this is technically the entrypoint).
    */
-  public static void quickStart(ClassLoader cl) {
-    L.i("Quick starting conductor | "
-        + ConductorManifest.conductorVersion() + " | " + ConductorManifest.conductorBootClass());
-    parentLoader = cl;
+  public static void quickStart(ClassLoader parentLoader) {
+    ConductorManifest conductorManifest = ConductorManifest.ofCurrent();
+    Log appLogger = Log.get("app");
+    appLogger.warn("Booting conductor: "
+        + conductorManifest.conductorVersion() + " @ " + conductorManifest.conductorBootClass());
+    PARENT_LOADER = parentLoader;
 
-    // Run
-    if (Conductor.getInstance() != null) {
-      Conductor.getInstance().onDisable();
-    }
-
-    Conductor conductor = new Conductor();
+    Conductor conductor = new Conductor(appLogger);
     Conductor.setInstance(conductor);
 
-    L.i("Working...");
+    appLogger.info("Getting to work...");
     conductor.onEnable();
 
     // Finish, clean up
-    L.i("Shutting down...");
+    appLogger.info("Done. Shutting down...");
     conductor.onDisable();
+    appLogger.info("Goodbye.");
   }
 }

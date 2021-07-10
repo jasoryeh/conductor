@@ -2,147 +2,175 @@ package tk.jasoryeh.conductor;
 
 import com.google.common.io.Files;
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.StringJoiner;
-import java.util.jar.Manifest;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
-import tk.jasoryeh.conductor.config.InvalidConfigurationException;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
+import tk.jasoryeh.conductor.config.LauncherConfiguration.LauncherUpdateFrom;
+import tk.jasoryeh.conductor.config.LauncherConfiguration.LauncherUpdateFromConfiguration;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
-import tk.jasoryeh.conductor.log.L;
-import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.Utility;
 
 public class ConductorUpdater {
+  private static final File UPDATE_LOCATION = new File(Downloader.getTempFolder(), "conductor_latest.jar");
 
-  private static void log(Object... o) {
-    StringJoiner stringJoiner = new StringJoiner(" ");
-    for (Object o1 : o) {
-      stringJoiner.add(o1.toString());
-    }
+  private final Log logger;
+  private final LauncherConfiguration config;
 
-    L.s("[Conductor Updater]", stringJoiner);
+  private Downloader downloader;
+
+  private void log(Object... o) {
+    this.logger.info(o);
   }
 
-  private static final String FINAL_NAME = "conductor_latest.jar";
+  public ConductorUpdater(Log logger, LauncherConfiguration config) {
+    this.logger = logger.sublevel("updater");
+    this.config = config;
+  }
 
-  /**
-   * Update conductor This attempts to update conductor
-   * <p>
-   * 1. Check if it should self-update 2. Verify configuration for self update information (Jenkins
-   * artifact and job information) 3. Look for job and artifact, try downloading 4. Load jar file,
-   * boot up, and stop current jar from running.
-   *
-   * @return true if complete and finished, false if couldn't finish.
-   */
-  public static boolean update() {
-    log("Attempting to retrieve latest update of conductor!");
-
-    LauncherConfiguration launchConfig = LauncherConfiguration.get();
-    LauncherConfiguration.LauncherUpdateFromConfiguration self = launchConfig.getSelfUpdate();
-    if (!self.isShouldUpdate()) {
-      log("Aborting, not allowed to update per configuration rule.");
-      return false;
+  public Downloader downloadLatest(boolean forceRetry) {
+    if (this.downloader != null && !forceRetry) {
+      this.logger.info("Conductor has already downloaded the latest version.");
+      return this.downloader;
     }
 
-    LauncherConfiguration.LauncherUpdateFrom from = self.getUpdateFrom();
-    String data = self.getUpdateData();
-    log("Updating from " + from.toString() + " data: " + data);
-    try {
-      Downloader conductorDownloader;
-      File conductorFile = new File(Utility.cwdAndSep() + FINAL_NAME);
-      switch (from) {
-        case JENKINS:
-          String[] split = data.split(";");
-          String job = split[0];
-          String artifact = split[1];
-          int num = Integer.valueOf(split[2]);
+    LauncherUpdateFromConfiguration selfUpdateConfig = this.config.getSelfUpdate();
+    LauncherUpdateFrom from = selfUpdateConfig.getUpdateFrom();
+    String updateData = selfUpdateConfig.getUpdateData();
+    this.logger.info("Downloading latest conductor from " + selfUpdateConfig.getUpdateFrom()
+        + " with configuration data: " + selfUpdateConfig.getUpdateData());
 
-          conductorDownloader = new JenkinsDownloader(
-              launchConfig.getJenkins(),
-              job,
-              artifact,
-              num,
-              FINAL_NAME,
-              true
-          );
-          break;
-        case URL:
-          conductorDownloader = new URLDownloader(
-              data,
-              FINAL_NAME,
-              true,
-              new Credentials()
-          );
-          break;
-        default:
-          log("Could not update.");
-          return false;
-      }
-      conductorDownloader.download();
-
-      // delete if not the same file contents and replace
-      if (conductorFile.exists()) {
-        if (FileUtils.contentEquals(conductorFile, conductorDownloader.getDownloadedFile())) {
-          log("Downloaded conductor has same contents as existing, skipping...");
-        } else {
-          log("Deleted old conductor, result: " + (conductorFile.delete() ? "successful"
-              : "unsuccessful"));
-          // replace deleted file with fresh downloaded version
-          Files.copy(conductorDownloader.getDownloadedFile(), conductorFile);
-        }
-      } else {
-        Files.copy(conductorDownloader.getDownloadedFile(), conductorFile);
-      }
-
-      // Start
-      log(String.format("Starting updated conductor... [%s]", conductorFile.getAbsolutePath()));
-      return startUpdatedConductor();
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new InvalidConfigurationException(
-          "Invalid self update configuration! Please check your serverlauncher.properties and try again.");
+    Downloader downloader;
+    switch (from) {
+      case JENKINS:
+        String[] updateSpec = updateData.split(";");
+        downloader = new JenkinsDownloader(
+            this.config.getJenkins(),
+            updateSpec[0],
+            updateSpec[1],
+            Integer.parseInt(updateSpec[2]),
+            UPDATE_LOCATION.getName(),
+            true
+        );
+        break;
+      case URL:
+        downloader = new URLDownloader(
+            updateData,
+            UPDATE_LOCATION.getName(),
+            true,
+            new Credentials()
+        );
+        break;
+      default:
+        this.logger.error("Unable to update, don't know how to update from " + from + "!");
+        throw new IllegalArgumentException("Don't know how to update from source: " + from);
     }
+    downloader.download();
+
+    if(!downloader.isDownloaded()) {
+      throw new IllegalStateException(
+          "A download was performed to " + downloader.getDownloadedFile().getAbsolutePath()
+              + " but it doesn't seem completed!");
+    }
+    this.logger.info("Download complete!");
+
+    this.downloader = downloader;
+    return downloader;
   }
 
   @SneakyThrows
-  public static boolean startUpdatedConductor() {
-    // Class loader (quicker, we go to a quick boot method)
-    // Doesn't need env params as it uses this jars parameters and we jump straight to
-    // the action
-    File jarFile = new File(Utility.cwdAndSep() + FINAL_NAME);
-    URL[] urls = new URL[]{jarFile.toURI().toURL()};
-    L.d(jarFile.toURI().toURL());
-    L.d(File.separator);
-    L.d(Utility.getCWD());
-    L.d(Utility.cwdAndSep());
-    URLClassLoader customLoader = new URLClassLoader(urls, null);
-
-    Class<?> conductorClass = customLoader.loadClass(
-        new Manifest(
-            customLoader.getResourceAsStream("conductor-manifest.mf"))
-            .getMainAttributes().getValue("Conductor-Boot")
+  public ClassLoader classLoader(Downloader downloader) {
+    return new URLClassLoader(
+        new URL[]{ downloader.getDownloadedFile().toURI().toURL() }
     );
+  }
 
-    if (conductorClass == null) {
-      Logger.getLogger().error("Invalid jar file, falling back!");
+  @SneakyThrows(MalformedURLException.class)
+  public boolean hasUpdate() {
+    if (!this.config.getSelfUpdate().isShouldUpdate()) {
+      this.logger.warn("Conductor will not be updating per configuration!");
       return false;
     }
 
-    // Run. - also waits for completion.. i think
+    Downloader downloader = this.downloadLatest(true);
+    ClassLoader loader = this.classLoader(downloader);
+
+    ConductorManifest currentManifest = ConductorManifest.ofCurrent();
+    ConductorManifest updatedManifest = ConductorManifest.ofClassLoader(loader);
+    this.logger.info("Downloaded manifest version: " + updatedManifest.toString()
+        + "(current: " + currentManifest.toString() + ")");
+    return !updatedManifest.conductorVersion().equals(currentManifest.conductorVersion());
+  }
+
+
+  /**
+   * Tries to update the current jar file with a newer copy.
+   *
+   * @return true if complete and finished, false if couldn't finish.
+   */
+  public boolean update() {
+    this.logger.info("Attempting jar file replacement...");
     try {
-      conductorClass.getMethod("quickStart").invoke(ConductorMain.class.getClassLoader());
+      // tries to replace currently running jar with new one
+      File currentJar = Utility.currentFile();
+      File newJar = this.downloadLatest(false)
+          .getDownloadedFile();
+
+      if(currentJar.isDirectory()) { // technically the currentJar is a directory, so we can't use that.
+        Files.copy(newJar, new File(Utility.cwdFile(), UPDATE_LOCATION.getName())); // so we make a file
+      } else if(FileUtils.contentEquals(currentJar, newJar)) {
+        this.logger.info("The existing jar file at " + currentJar.getAbsolutePath()
+            + " is equivalent to the one we downloaded!");
+      } else {
+        // delete current jar and replace it
+        currentJar.delete();
+        Files.copy(newJar, currentJar);
+      }
+      this.logger.info("JAR file replacement complete.");
+      return true;
+    } catch (Exception e) {
+      this.logger.warn("Could not replace current jar file with a new copy!");
+      e.printStackTrace();
+    }
+    return false;
+  }
+
+  @SneakyThrows
+  public boolean startUpdatedConductor() {
+    // Class loader (quicker, we go to a quick boot method)
+    // Doesn't need env params as it uses this jars parameters and we jump straight to
+    // the action
+    this.logger.info("Starting downloaded conductor!");
+    ClassLoader classLoader = this.classLoader(
+        this.downloadLatest(false));
+
+    ConductorManifest conductorManifest = ConductorManifest.ofClassLoader(classLoader);
+    Class<?> conductorClass = classLoader.loadClass(
+        conductorManifest.conductorBootClass()
+    );
+
+    if (conductorClass == null) {
+      this.logger.info("The manifest specified the main class as "
+          + conductorManifest.conductorBootClass() + " but it could not be found!");
+      return false;
+    }
+
+    try {
+      conductorClass.getMethod("quickStart")
+          .invoke(ConductorMain.class.getClassLoader());
       return true;
     } catch (Exception e) {
       try {
-        conductorClass.getMethod("quickStart").invoke(null);
+        conductorClass.getMethod("quickStart")
+            .invoke(null);
         return true;
       } catch (Exception er) {
+        this.logger.error("Unable to quickStart the updated conductor version!");
         e.printStackTrace();
         er.printStackTrace();
         return false;

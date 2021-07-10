@@ -13,8 +13,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.List;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import tk.jasoryeh.conductor.Log;
 import tk.jasoryeh.conductor.config.JenkinsConfiguration;
-import tk.jasoryeh.conductor.log.L;
 
 /**
  * Retrieve files from the Jenkins server specified
@@ -118,6 +118,6 @@ public class JenkinsDownloader extends Downloader {
   }
 
   private void log(String msg) {
-    L.i("[Jenkins] " + msg);
+    Log.get("jenkinsdownloader").info("[Jenkins] " + msg);
   }
 }

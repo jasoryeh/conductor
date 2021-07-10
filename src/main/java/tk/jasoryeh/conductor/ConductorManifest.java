@@ -5,22 +5,41 @@ import java.util.jar.Manifest;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
+/**
+ * Get data related to a Conductor instance
+ * by "conductor-manifest.mf"'s Manifest object.
+ */
 public class ConductorManifest {
 
+  private final Manifest manifest;
+
+  public ConductorManifest(Manifest manifest) {
+    this.manifest = manifest;
+  }
+
+  public static ConductorManifest ofCurrent() {
+    return ofClassLoader(ConductorMain.class.getClassLoader());
+  }
+
   @SneakyThrows(IOException.class)
-  private static Manifest load() {
-    return new Manifest(
-        ConductorMain.class.getClassLoader().getResourceAsStream("conductor-manifest.mf"));
+  public static ConductorManifest ofClassLoader(ClassLoader loader) {
+    return new ConductorManifest(
+        new Manifest(
+            loader.getResourceAsStream("conductor-manifest.mf")
+        )
+    );
   }
 
-  @Getter
-  private static final Manifest conductorManifest = load();
-
-  public static String conductorVersion() {
-    return getConductorManifest().getMainAttributes().getValue("Conductor-Version");
+  public String conductorVersion() {
+    return this.manifest.getMainAttributes().getValue("Conductor-Version");
   }
 
-  public static String conductorBootClass() {
-    return getConductorManifest().getMainAttributes().getValue("Conductor-Boot");
+  public String conductorBootClass() {
+    return this.manifest.getMainAttributes().getValue("Conductor-Boot");
+  }
+
+  @Override
+  public String toString() {
+    return this.conductorBootClass() + "|" + this.conductorVersion();
   }
 }

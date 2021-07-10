@@ -1,6 +1,6 @@
 package tk.jasoryeh.conductor;
 
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.config.LauncherConfiguration;
 
 public class ConductorMain {
 
@@ -10,20 +10,25 @@ public class ConductorMain {
    * @param args :/
    */
   public static void main(String[] args) {
-    init();
+    Log log = Log.get("app");
+    ConductorMain.init(log);
   }
 
-  public static void init() {
-    L.i(String.format("Conductor %s [%s]",
-        ConductorManifest.conductorVersion(),
-        ConductorManifest.conductorBootClass()));
+  public static void init(Log logger) {
+    ConductorManifest conductorManifest = ConductorManifest.ofCurrent();
+    logger.info(
+        String.format("Conductor v%s [%s]",
+            conductorManifest.conductorVersion(),
+            conductorManifest.conductorBootClass()));
+    LauncherConfiguration launcherConfig = LauncherConfiguration.get();
 
     // update
-    if (!ConductorUpdater.update()) {
-      Conductor.quickStart();
-    } else {
-      L.i("Conductor was updated.");
+    ConductorUpdater updater = new ConductorUpdater(logger, launcherConfig);
+    if(updater.hasUpdate() &&
+        updater.startUpdatedConductor()) {
       Conductor.shutdown(false);
+    } else {
+      Conductor.quickStart(null);
     }
   }
 

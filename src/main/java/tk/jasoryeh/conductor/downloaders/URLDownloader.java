@@ -10,8 +10,8 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
+import tk.jasoryeh.conductor.Log;
 import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
-import tk.jasoryeh.conductor.log.L;
 
 /**
  * Retrieve files from a link
@@ -93,6 +93,6 @@ public class URLDownloader extends Downloader {
   }
 
   private void log(String msg) {
-    L.i("[URL] " + msg);
+    Log.get("urldownloader").info("[URL] " + msg);
   }
 }

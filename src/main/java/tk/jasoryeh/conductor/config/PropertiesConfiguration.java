@@ -13,7 +13,7 @@ import java.util.UUID;
 import lombok.Getter;
 import org.apache.commons.io.FileUtils;
 import tk.jasoryeh.conductor.Conductor;
-import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.Log;
 import tk.jasoryeh.conductor.util.Utility;
 
 /**
@@ -46,20 +46,20 @@ public class PropertiesConfiguration {
     this.allowCreation = allowCreation;
     instances.add(this);
 
-    Logger.getLogger().debug("Loading configuration \"" + fileName + "\"");
+    Log.get("config").debug("Loading configuration \"" + fileName + "\"");
     try {
       this.load();
       this.readFileToProperties();
     } catch (IOException e) {
-      Logger.getLogger().error("Unexpected error: IO. Exiting.");
+      Log.get("config").error("Unexpected error: IO. Exiting.");
       e.printStackTrace();
 
       Conductor.shutdown(true);
     } catch (Exception e) {
-      Logger.getLogger().error("Unexpected error: UNKNOWN. Exiting.");
+      Log.get("config").error("Unexpected error: UNKNOWN. Exiting.");
       e.printStackTrace();
     }
-    Logger.getLogger().info("Configuration loaded: \"" + fileName + "\"");
+    Log.get("config").info("Configuration loaded: \"" + fileName + "\"");
   }
 
   /**
@@ -70,10 +70,10 @@ public class PropertiesConfiguration {
     this.isEnvironmentallyDeclared = false;
 
     if (this.configurationFile.exists()) {
-      Logger.getLogger().info("File " + this.file + " doesn't exist.");
+      Log.get("config").info("File " + this.file + " doesn't exist.");
 
       if (!this.allowCreation) {
-        Logger.getLogger().warn("Told not to create. Proceeding anyways.");
+        Log.get("config").warn("Told not to create. Proceeding anyways.");
       }
 
       return;
@@ -83,18 +83,18 @@ public class PropertiesConfiguration {
       boolean isConfigLess = opt1.isPresent() && Boolean.parseBoolean(opt1.get());
 
       if (isConfigLess) {
-        Logger.getLogger().info(
+        Log.get("config").info(
             "Conductor configuration appears to be environmentally defined. We will load this later.");
         this.isEnvironmentallyDeclared = true;
       } else {
-        Logger.getLogger().info("Trying to create " + this.file);
+        Log.get("config").info("Trying to create " + this.file);
 
         try {
           URL url = getClass().getResource("/" + this.file);
           File fo = new File(Utility.getCWD() + File.separator + this.file);
           FileUtils.copyURLToFile(url, fo);
         } catch (Exception e) {
-          Logger.getLogger().warn("No default config for " + this.file + " exists: "
+          Log.get("config").warn("No default config for " + this.file + " exists: "
               + (this.configurationFile.createNewFile() ? "empty file created in its place"
               : "failed ot make a file"));
         }
