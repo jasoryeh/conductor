@@ -89,4 +89,8 @@ public enum TerminalColors {
     public String toString() {
         return code;
     }
+
+    public String wrap(String s) {
+        return this.code + s + RESET;
+    }
 }

@@ -1,14 +1,10 @@
 package tk.jasoryeh.conductor;
 
-import com.google.common.io.Files;
 import lombok.SneakyThrows;
-import org.apache.commons.io.FileUtils;
-import tk.jasoryeh.conductor.config.InvalidConfigurationException;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
-import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
 import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.Utility;
@@ -16,7 +12,7 @@ import tk.jasoryeh.conductor.util.Utility;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.StringJoiner;
 import java.util.jar.Manifest;
 
@@ -48,69 +44,51 @@ public class ConductorUpdater {
         log("Attempting to retrieve latest update of conductor!");
 
         LauncherConfiguration launchConfig = LauncherConfiguration.get();
-        LauncherConfiguration.LauncherUpdateFromConfiguration self = launchConfig.getSelfUpdate();
-        if(!self.isShouldUpdate()) {
+        LauncherConfiguration.UpdateConfig self = launchConfig.getUpdateConfig();
+        if(!self.isUpdate()) {
             log("Aborting, not allowed to update per configuration rule.");
             return false;
         }
 
-        LauncherConfiguration.LauncherUpdateFrom from = self.getUpdateFrom();
-        String data = self.getUpdateData();
+        LauncherConfiguration.UpdateConfig.UpdateConfigSource from = self.getSource();
+        String data = self.getData();
         log("Updating from " + from.toString() + " data: " + data);
-        try {
-            Downloader conductorDownloader;
-            File conductorFile = new File(Utility.cwdAndSep() + FINAL_NAME);
-            switch (from) {
-                case JENKINS:
-                    String[] split = data.split(";");
-                    String job = split[0];
-                    String artifact = split[1];
-                    int num = Integer.valueOf(split[2]);
+        Downloader conductorDownloader;
+        File conductorFile = new File(Utility.getCurrentDirectory(), FINAL_NAME);
+        switch (from) {
+            case JENKINS:
+                String[] split = data.split(";");
+                String job = split[0];
+                int build = Integer.parseInt(split[1]);
+                String artifact = split[2];
 
-                    conductorDownloader = new JenkinsDownloader(
-                            launchConfig.getJenkins(),
-                            job,
-                            artifact,
-                            num,
-                            FINAL_NAME,
-                            true
-                    );
-                    break;
-                case URL:
-                    conductorDownloader = new URLDownloader(
-                            data,
-                            FINAL_NAME,
-                            true,
-                            new Credentials()
-                    );
-                    break;
-                default:
-                    log("Could not update.");
-                    return false;
-            }
-            conductorDownloader.download();
-
-            // delete if not the same file contents and replace
-            if(conductorFile.exists()) {
-                if(FileUtils.contentEquals(conductorFile, conductorDownloader.getDownloadedFile())) {
-                    log("Downloaded conductor has same contents as existing, skipping...");
-                } else {
-                    log("Deleted old conductor, result: " + (conductorFile.delete() ? "successful" : "unsuccessful"));
-                    // replace deleted file with fresh downloaded version
-                    Files.copy(conductorDownloader.getDownloadedFile(), conductorFile);
-                }
-            } else {
-                Files.copy(conductorDownloader.getDownloadedFile(), conductorFile);
-            }
-
-            // Start
-            log(String.format("Starting updated conductor... [%s]", conductorFile.getAbsolutePath()));
-            return startUpdatedConductor();
-        } catch(Exception e) {
-            e.printStackTrace();
-            throw new InvalidConfigurationException(
-                    "Invalid self update configuration! Please check your serverlauncher.properties and try again.");
+                conductorDownloader = new JenkinsDownloader(
+                        conductorFile,
+                        true,
+                        launchConfig.getJenkinsConfig(),
+                        job,
+                        build,
+                        artifact
+                );
+                break;
+            case URL:
+                conductorDownloader = new URLDownloader(
+                        conductorFile,
+                        true,
+                        data,
+                        new HashMap<>()
+                );
+                break;
+            default:
+                log("Could not update. Unsupported update source!");
+                return false;
         }
+        log("Downloading updated conductor...");
+        conductorDownloader.download();
+        log("Downloading complete.");
+        log(String.format("Starting updated conductor... [%s]", conductorFile.getAbsolutePath()));
+        // Start
+        return startUpdatedConductor();
     }
 
     @SneakyThrows
@@ -118,12 +96,11 @@ public class ConductorUpdater {
         // Class loader (quicker, we go to a quick boot method)
         // Doesn't need env params as it uses this jars parameters and we jump straight to
         // the action
-        File jarFile = new File(Utility.cwdAndSep() + FINAL_NAME);
+        File jarFile = new File(Utility.getCurrentDirectory(), FINAL_NAME);
         URL[] urls = new URL[]{jarFile.toURI().toURL()};
         L.d(jarFile.toURI().toURL());
         L.d(File.separator);
-        L.d(Utility.getCWD());
-        L.d(Utility.cwdAndSep());
+        L.d(Utility.getCurrentDirectory());
         URLClassLoader customLoader = new URLClassLoader(urls, null);
 
         Class<?> conductorClass = customLoader.loadClass(

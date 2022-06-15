@@ -3,8 +3,6 @@ package tk.jasoryeh.conductor.log;
 import tk.jasoryeh.conductor.util.TerminalColors;
 
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.TextStyle;
 import java.util.StringJoiner;
 
 public class Logger {

@@ -4,15 +4,16 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Base64;
-import tk.jasoryeh.conductor.downloaders.authentication.Credentials;
-import tk.jasoryeh.conductor.log.L;
 import org.apache.commons.io.FileUtils;
+import tk.jasoryeh.conductor.log.L;
 
 import java.io.File;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Retrieve files from a link
@@ -23,19 +24,19 @@ public class URLDownloader extends Downloader {
 
     @Getter
     @Setter
-    protected Credentials credentials;
+    protected Map<String, String> headers;
 
     /**
      * Downloader for file links
+     * @param destination Destination
+     * @param overwrite if the file is found in temporary storage or already there, do you want to delete it and replace it?
      * @param url https://example.com/files/example.file.ext
-     * @param fileName example.file.ext or some other file name with extension
-     * @param replaceIfExists if the file is found in temporary storage or already there, do you want to delete it and replace it?
-     * @param credentials HTTP headers for authorization
+     * @param headers HTTP headers for authorization
      */
-    public URLDownloader(String url, String fileName, boolean replaceIfExists, Credentials credentials) {
-        super(fileName, replaceIfExists);
+    public URLDownloader(File destination, boolean overwrite, String url, Map<String, String> headers) {
+        super(destination, overwrite);
         this.url = url;
-        this.credentials = credentials;
+        this.headers = headers;
     }
 
     /**
@@ -52,7 +53,7 @@ public class URLDownloader extends Downloader {
         if(locationDomain.contains("@")) {
             basic = true;
             basicAuthString = locationDomain.split("@")[0];
-            useThisUrl = useThisUrl.replaceFirst(basicAuthString + "@", "");
+            useThisUrl = useThisUrl.replaceFirst(Pattern.quote(basicAuthString + "@"), "");
             this.log("Using BASIC authentication. Auth length " + basicAuthString.length());
         }
 
@@ -62,14 +63,15 @@ public class URLDownloader extends Downloader {
             huc.setRequestProperty("Authorization", "Basic " + basicB64);
             this.log("Appended authorizaton header, b64 len:" + basicB64.length());
         }
-        this.credentials.credentials.forEach((credentialType, stringStringMap) -> stringStringMap.forEach(huc::setRequestProperty));
+
+        this.headers.entrySet().forEach(entry -> huc.setRequestProperty(entry.getValue(), entry.getKey()));
 
         // Protect against 403 by setting default user-agent.
         if(huc.getRequestProperty("User-Agent") == null) {
             huc.setRequestProperty("User-Agent", "conductor, Java");
         }
 
-        File out = new File(getTempFolder() + File.separator + this.outputFileName);
+        File out = this.destination;
 
         if (out.exists()) this.log("Deleting from temporary folder " + out.getAbsolutePath() + " | Success:" + out.delete());
 
@@ -78,8 +80,6 @@ public class URLDownloader extends Downloader {
         InputStream inputStream = huc.getInputStream();
         FileUtils.copyInputStreamToFile(inputStream, out);
         inputStream.close();
-
-        this.downloadedFile = out;
 
         return true;
     }

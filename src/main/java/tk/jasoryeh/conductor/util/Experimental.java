@@ -1,6 +1,5 @@
 package tk.jasoryeh.conductor.util;
 
-import tk.jasoryeh.conductor.Conductor;
 import tk.jasoryeh.conductor.log.Logger;
 
 import java.io.File;

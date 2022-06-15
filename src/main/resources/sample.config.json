@@ -1,56 +1,80 @@
 {
-  "templateName": "configTest",
-  "type": "java",
-  "launchOptions": "",
-  "overwrite": true,
-  "launch": "server.jar",
-  "launchWithSameParams": false,
-  "tree" : {
-    "server.jar": {
-      "type": "file",
-      "retrieval": {
-        "retrieve": true,
-        "method": "url",
-        "unzipRequired": false,
-        "auth": false,
-        "url": "https://cdn.getbukkit.org/spigot/spigot-1.13.2.jar",
-        "requestType": "DEFAULT",
-        "authDetails": {}
-      }
-    },
-    "testfolder1": {
-      "type": "folder",
-      "retrieval": {
-        "retrieve": false
+  "_conductor": {
+    "version": "1",
+    "name": "Example Template",
+    "description": "(optional) description goes here",
+    "secrets": {
+      "jenkins_1": {
+        "type": "jenkins",
+        "jenkins_host": "https://build.somewhere.org",
+        "jenkins_user": "username",
+        "jenkins_auth": "password/auth_token"
       },
-      "contents": {
-        "tree": {
-          "testfile1": {
-            "type": "file",
-            "retrieval": {
-              "retrieve": "false"
-            },
-            "contents": {
-              "content": "hello my name jeff"
-            }
-          }
+      "http_auth_1": {
+        "type": "http",
+        "http_headers": {
+          "Authorization": "Bearer xxxyyy",
+          "X-Some-Secret-Header": "secret123"
         }
       }
     },
-    "test.jar": {
+    "variables": {
+      "SOME_VARIABLE1": "some value",
+      "SOME_VARIABLE2": "some other value..."
+    }
+  },
+  "filesystem": {
+    "local-file.ext": {
       "type": "file",
-      "retrieval": {
-        "retrieve": true,
-        "auth": true,
-        "method": "jenkins",
-        "jenkinsAuth": {
-          "job": "test",
-          "artifact": "test-1.0-SNAPSHOT-jar-with-dependencies.jar",
-          "number": -1,
-          "host": "https://ci.example.com",
-          "username": "input",
-          "passwordOrToken": "asd98fuasdifs09sidf9asuf09"
-        }
+      "content": "line1\nline2\nline3\nor{NEWLINE}also{NEWLINE}works too!!!\n"
+    },
+    "local-file-alternative.ext": {
+      "type": "file",
+      "content": [
+        "line 1",
+        "line 2",
+        "line that ends the file"
+      ]
+    },
+    "download-file-direct.ext": {
+      "type": "file",
+      "content": {
+        "plugins": "http",
+        "http": "https://static.somewhere.org/file/file-to-download-and-some-variable-{{SOME_VARIABLE1}}.txt",
+        "http_secret": "http_auth_1"
+      }
+    },
+    "download-file-zipped.ext": {
+      "type": "file",
+      "content": {
+        "plugins": ["http"],
+        "http": "https://static.somewhere.org/file/file-to-download.txt",
+        "http_secret": "http_auth_1",
+        "unzip_location": "/sub/directory/to/file.txt"
+      }
+    },
+    "jenkins-file.ext": {
+      "type": "file",
+      "content": {
+        "plugins": "jenkins",
+        "jenkins_job": "JobName",
+        "jenkins_artifact": "artifact-file-versionSomething.jar",
+        "jenkins_secret": "jenkins_1"
+      }
+    },
+    "folder-defined": {
+      "type": "folder",
+      "content": {
+        "...1": {},
+        "...2": {}
+      }
+    },
+    "zip-download": {
+      "type": "file",
+      "content": {
+        "plugins": "http",
+        "http": "https://static.somewhere.org/file/archive-to-download.zip",
+        "http_secret": "http_auth_1"
       }
     }
   }

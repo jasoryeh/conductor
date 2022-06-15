@@ -1,22 +1,31 @@
 package tk.jasoryeh.conductor.config;
 
 import lombok.Getter;
+import org.apache.commons.io.FileUtils;
 import tk.jasoryeh.conductor.Conductor;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.Utility;
-import org.apache.commons.io.FileUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.URL;
-import java.util.*;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
- * Represents one configuration file
- * ex. config.properties is one instance
- * and launcher.properties would be another.
+ * Represents one ".properties" configuration file.
+ * Optionally can be specified through the application's environment.
+ *   In environment, keys will be looked up as
+ *     CONDUCTOR_(FILE)_(KEY)
+ *   where FILE and KEY have whitespace and "." replaced with "_"
  */
-public class PropertiesConfiguration {
-    private static List<PropertiesConfiguration> instances = new ArrayList<>();
+public class PropertiesFile {
+
+    private final String envPrefix = "CONDUCTOR";
 
     @Getter
     private final String file;
@@ -34,25 +43,24 @@ public class PropertiesConfiguration {
      * @param fileName The file relative to jar to find the config.
      * @param allowCreation Create file if not exists?
      */
-    public PropertiesConfiguration(String fileName, boolean allowCreation) {
+    public PropertiesFile(String fileName, boolean allowCreation) {
         this.file = fileName;
         this.allowCreation = allowCreation;
-        instances.add(this);
 
-        Logger.getLogger().debug("Loading configuration \"" + fileName + "\"");
+        Logger.getLogger().debug(String.format("Loading configuration \"%s\"", fileName));
         try {
             this.load();
             this.readFileToProperties();
         } catch(IOException e) {
-            Logger.getLogger().error("Unexpected error: IO. Exiting.");
+            Logger.getLogger().error(String.format("Unexpected error: IO. Exiting. %s", e.getMessage()));
             e.printStackTrace();
 
             Conductor.shutdown(true);
         } catch(Exception e) {
-            Logger.getLogger().error("Unexpected error: UNKNOWN. Exiting.");
+            Logger.getLogger().error(String.format("Unexpected error: Unknown. Exiting. %s", e.getMessage()));
             e.printStackTrace();
         }
-        Logger.getLogger().info("Configuration loaded: \"" + fileName + "\"");
+        Logger.getLogger().info(String.format("Configuration loaded: \"%s\"", fileName));
     }
 
     /**
@@ -71,29 +79,22 @@ public class PropertiesConfiguration {
 
             return;
         } else {
-
             Optional<String> opt1 = Optional.ofNullable(System.getenv("CONDUCTOR_ISCONFIGLESS"));
-            boolean isConfigLess = opt1.isPresent() && Boolean.parseBoolean(opt1.get());
-
-            if(isConfigLess) {
-                Logger.getLogger().info("Conductor configuration appears to be environmentally defined. We will load this later.");
-                this.isEnvironmentallyDeclared = true;
+            this.isEnvironmentallyDeclared = opt1.isPresent() && Boolean.parseBoolean(opt1.get());
+            if (this.isEnvironmentallyDeclared) {
+                Logger.getLogger().info("Conductor configuration appears to be environmentally defined.");
             } else {
-                Logger.getLogger().info("Trying to create " + this.file);
+                Logger.getLogger().info(String.format("Trying to create %s", this.file));
 
                 try {
                     URL url = getClass().getResource("/" + this.file);
-                    File fo = new File(Utility.getCWD() + File.separator + this.file);
+                    File fo = new File(Utility.getCurrentDirectory(),  this.file);
                     FileUtils.copyURLToFile(url, fo);
                 } catch(Exception e) {
-                    Logger.getLogger().warn("No default config for " + this.file + " exists: "
-                            + (this.configurationFile.createNewFile() ? "empty file created in its place" : "failed ot make a file"));
+                    Logger.getLogger().warn(String.format("No default config for %s exists: %s", this.file, this.configurationFile.createNewFile() ? "empty file created in its place" : "failed ot make a file"));
                 }
             }
-
         }
-
-
     }
 
     /**
@@ -109,15 +110,6 @@ public class PropertiesConfiguration {
         FileReader configReader = new FileReader(this.configurationFile);
         this.rawProperties = new Properties();
         this.rawProperties.load(configReader);
-    }
-
-    public void reload() {
-        try {
-            this.load();
-            this.readFileToProperties();
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -140,15 +132,6 @@ public class PropertiesConfiguration {
     }
 
     /**
-     * Sets the string of a property
-     * @param key key for value
-     * @param value value to store with key
-     */
-    public void setString(String key, String value) {
-        this.setProperty(key, value);
-    }
-
-    /**
      * Finds if a key exists, a value matching the randomly generated one is near impossible
      * @param key Key to check
      * @return if key exists
@@ -158,14 +141,21 @@ public class PropertiesConfiguration {
         return !this.getProperty(key, u).equalsIgnoreCase(u);
     }
 
+    private static String toEnv(String s) {
+        return s.toUpperCase().replaceAll(" ", "_").replaceAll(Pattern.quote("."), "_");
+    }
+
+    private String keyToEnv(String key) {
+        String prefix = toEnv(this.file);
+        String convert = toEnv(key);
+        return (String.format("%s_%s_%s", this.envPrefix, prefix, convert));
+    }
+
     private String getProperty(String key, String deflt) {
         if(this.isEnvironmentallyDeclared) {
-            Optional<String> getenv = Optional.ofNullable(System.getenv("CONDUCTOR_" + (key.replaceAll(" ", "_").toUpperCase())));
-            if(getenv.isPresent()) {
-                return getenv.get();
-            } else {
-                return deflt;
-            }
+            Optional<String> getenv = Optional.ofNullable(
+                    System.getenv(keyToEnv(key)));
+            return getenv.orElse(deflt);
         } else {
             return this.rawProperties.getProperty(key, deflt);
         }
@@ -173,7 +163,7 @@ public class PropertiesConfiguration {
 
     private boolean setProperty(String key, String val) {
         if(this.isEnvironmentallyDeclared) {
-            return false; // we aren't going to write to the environment.
+            throw new IllegalStateException("Cannot write to an environment-based configuration!");
         } else {
             this.rawProperties.setProperty(key, val);
             return true;
