@@ -101,7 +101,7 @@ public class V2Template {
         JsonObject object = conductorMetadataObject.getAsJsonObject();
         this.version = object.get("version").getAsInt();
         this.name = object.get("name").getAsString();
-        this.description = object.get("description").getAsString();
+        this.description = object.has("description") ? object.get("description").getAsString() : "(no description)";
     }
 
     public void parseVariables() {
