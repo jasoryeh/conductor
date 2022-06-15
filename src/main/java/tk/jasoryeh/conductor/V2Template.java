@@ -194,12 +194,12 @@ public class V2Template {
 
     public String resolveVariables(final String inText) {
         String temp = inText.replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
-        for (Map.Entry<String, String> varEntry : this.variables.entrySet()) {
-            temp = temp.replaceAll(Pattern.quote(String.format("{{!%s!}}", varEntry.getKey())), varEntry.getValue())
-                    .replaceAll(Pattern.quote(String.format("{{%s}}", varEntry.getKey())), varEntry.getValue());
-        }
         for (Map.Entry<String, String> varEntry : System.getenv().entrySet()) {
             temp = temp.replaceAll(Pattern.quote(String.format("{{$%s$}}", varEntry.getKey())), varEntry.getValue())
+                    .replaceAll(Pattern.quote(String.format("{{%s}}", varEntry.getKey())), varEntry.getValue());
+        }
+        for (Map.Entry<String, String> varEntry : this.variables.entrySet()) {
+            temp = temp.replaceAll(Pattern.quote(String.format("{{!%s!}}", varEntry.getKey())), varEntry.getValue())
                     .replaceAll(Pattern.quote(String.format("{{%s}}", varEntry.getKey())), varEntry.getValue());
         }
         return temp;
