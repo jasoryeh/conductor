@@ -171,6 +171,20 @@ public class V2Template {
         JsonObject rootObject = this.rootObject.get("filesystem").getAsJsonObject().deepCopy();
         for (V2Template include : this.includes) {
             L.i("  ..." + this.name + " + " + include.name);
+
+            // merge unset secrets and variables
+            for (Map.Entry<String, String> varEntry : include.variables.entrySet()) {
+                if (!this.variables.containsKey(varEntry.getKey())) {
+                    this.variables.put(varEntry.getKey(), varEntry.getValue());
+                }
+            }
+            for (Map.Entry<String, V2Secret> secretEntry : include.secretMap.entrySet()) {
+                if (!this.secretMap.containsKey(secretEntry.getKey())) {
+                    this.secretMap.put(secretEntry.getKey(), secretEntry.getValue());
+                }
+            }
+
+            // merge with the includes merged finalized definition
             JsonObject subObject = include.getFinalizedFilesystemDefinition();
             mergeTree(rootObject, subObject);
         }
