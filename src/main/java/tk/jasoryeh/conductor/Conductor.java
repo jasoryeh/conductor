@@ -26,15 +26,14 @@ public class Conductor extends Boot {
      * With the creation of this, we auto call onEnable and start the process
      */
     Conductor() {
-        L.i("<< --- < " + TerminalColors.GREEN_BOLD.wrap("Conductor") + " > --- >>");
-        L.i("Getting ready to work...");
-
+        L.d("<< --- < " + TerminalColors.GREEN_BOLD.wrap("Conductor") + " > --- >>");
         String argumentFull = String.join(" ", Utility.getJVMArguments());
-        L.d("Arguments - " + argumentFull);
-        L.d("File Test - " + new File("test").getAbsolutePath());
+        L.d("Arguments - " + (argumentFull.length() == 0 ? "(empty)" : argumentFull));
+        L.d("Current Directory - " + Utility.getCurrentDirectory());
         L.d("File separator - " + File.separator);
-        L.i("Running in - " + System.getProperty("user.dir"));
-        L.i("Temporary storage in - " + new File(Utility.getCurrentDirectory(), V2Template.TEMPORARY_DIR).getAbsolutePath());
+        L.d("File path separator - " + File.pathSeparator);
+        L.d("Running in - " + System.getProperty("user.dir"));
+        L.d("Temporary storage in - " + new File(Utility.getCurrentDirectory(), V2Template.TEMPORARY_DIR).getAbsolutePath());
     }
 
     @Override
@@ -43,21 +42,24 @@ public class Conductor extends Boot {
         JsonObject rawTemplate = Objects.requireNonNull(this.launcherConfig.parseConfig());
         this.templateConfig = new V2Template(rawTemplate);
 
-        List<V2FileSystemObject> fsObjs = this.templateConfig.parseFilesystem();
-        L.i("Found " + fsObjs.size() + " root objects.");
-        L.i("Parsing objects...");
+        List<V2FileSystemObject> fsObjs = this.templateConfig.buildFilesystemModel();
+        L.i("Found " + fsObjs.size() + " root object definitions.");
+        L.i("Parsing object definitions...");
         fsObjs.forEach(V2FileSystemObject::parse);
+        L.i("Tree:");
+        displayTree(fsObjs);
         L.i("Preparing resources....");
+        // todo: asynchronously prepare resources?
         fsObjs.forEach(V2FileSystemObject::prepare);
-        L.i("Clean...");
+        L.i("Cleaning up work directory...");
         fsObjs.forEach(V2FileSystemObject::delete);
-        L.i("Updating...");
-        fsObjs.forEach(V2FileSystemObject::create);
-        L.i("Done!");
+        L.i("Applying changes to work directory...");
+        fsObjs.forEach(V2FileSystemObject::apply);
+        L.i("Changes applied!");
     }
 
     public void onDisable() {
-        L.i("Conductor shutting down.");
+        L.i("Conductor shut down.");
     }
 
     public static void shutdown(boolean err) {
@@ -69,6 +71,30 @@ public class Conductor extends Boot {
 
         System.exit(err ? 1 : 0);
         L.i("bye.");
+    }
+
+    private static String repeat(char c, int n) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                b.append(c);
+                b.append(c);
+                b.append(c);
+                b.append(c);
+            } else {
+                b.append(c);
+            }
+        }
+        return b.toString();
+    }
+
+    public static void displayTree(List<V2FileSystemObject> fsList) {
+        for (V2FileSystemObject v2FileSystemObject : fsList) {
+            L.i(repeat('-', v2FileSystemObject.depth()) + " "  + v2FileSystemObject.getName());
+            if (v2FileSystemObject instanceof  V2FolderObject) {
+                displayTree(((V2FolderObject) v2FileSystemObject).children);
+            }
+        }
     }
 
 
@@ -91,11 +117,11 @@ public class Conductor extends Boot {
         Conductor conductor = new Conductor();
         Conductor.setInstance(conductor);
 
-        L.i("Working...");
+        L.i("Booting Conductor...");
         conductor.onEnable();
 
         // Finish, clean up
-        L.i("Shutting down...");
+        L.i("Disabling Conductor...");
         conductor.onDisable();
     }
 }

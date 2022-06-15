@@ -52,7 +52,19 @@ public abstract class V2FileSystemObject {
         if (this.parent == null) {
             return new File(this.template.getTemporaryDirectory(), this.name);
         }
-        return new File(this.parent.getTemporary(), this.name);
+        return new File(this.parent.getTemporary(), this.buildTemporaryName());
+    }
+
+    private String buildTemporaryName() {
+        V2FileSystemObject parent = this.parent;
+        StringBuilder name = new StringBuilder();
+        while (parent != null) {
+            name.append(parent.getName());
+            name.append("-");
+            parent = parent.getParent();
+        }
+        name.append(this.name);
+        return name.toString();
     }
 
     /**
@@ -70,7 +82,7 @@ public abstract class V2FileSystemObject {
      *
      * Should not make any changes to the filesystem.
      *
-     * Should be called on initial parse in {@link #parseFilesystem}
+     * Should be called on initial parse in {@link #buildFilesystemModel}
      */
     public abstract void parse();
 
@@ -89,7 +101,15 @@ public abstract class V2FileSystemObject {
     /**
      * Perform changes, and finalize any modifications required on the filesystem.
      */
-    public abstract void create();
+    public abstract void apply();
+
+    /**
+     * Depth this object is in
+     * @return depth
+     */
+    public int depth() {
+        return this.parent == null ? 1 : this.parent.depth() + 1;
+    }
 
     public static JsonObject assertJsonObject(String k, JsonElement e) {
         if (!e.isJsonObject()) {
@@ -119,22 +139,22 @@ public abstract class V2FileSystemObject {
         return o.get("content");
     }
 
-    public static List<V2FileSystemObject> parseFilesystem(V2Template template, JsonObject definition) {
-        return parseFilesystem(template, null, definition);
+    public static List<V2FileSystemObject> buildFilesystemModel(V2Template template, JsonObject definition) {
+        return buildFilesystemModel(template, null, definition);
     }
 
-    public static List<V2FileSystemObject> parseFilesystem(V2FileSystemObject fsObject, JsonObject definition) {
-        return parseFilesystem(fsObject.getTemplate(), fsObject, definition);
+    public static List<V2FileSystemObject> buildFilesystemModel(V2FileSystemObject fsObject, JsonObject definition) {
+        return buildFilesystemModel(fsObject.getTemplate(), fsObject, definition);
     }
 
-    public static List<V2FileSystemObject> parseFilesystem(V2Template template, V2FileSystemObject fsObject, JsonObject definition) {
+    public static List<V2FileSystemObject> buildFilesystemModel(V2Template template, V2FileSystemObject fsObject, JsonObject definition) {
         ArrayList<V2FileSystemObject> fsDefinitions = new ArrayList<>();
         for (String fileName : Objects.requireNonNull(definition).keySet()) {
             fileName = template.resolveVariables(fileName);
             JsonObject fileDefinition = assertJsonObject(fileName, definition.get(fileName));
 
             String definitionType = getType(fileDefinition);
-            L.i("Found a '" + definitionType + "': " + fileName);
+            L.i("Found " + definitionType + ": " + fileName);
             switch(definitionType) {
                 case "file":
                     fsDefinitions.add(new V2FileObject(template, fsObject, fileName, fileDefinition));
@@ -146,11 +166,12 @@ public abstract class V2FileSystemObject {
                     throw new InvalidConfigurationException(String.format("Invalid definition type: %s", definitionType));
             }
         }
-        L.i("Parsed " + fsDefinitions.size() + " definitions.");
+        L.i("Parsed " + fsDefinitions.size() + " object definitions.");
         return fsDefinitions;
     }
 
     public static Plugin createPlugin(String type, V2FileSystemObject fsObject, JsonObject contentsDefinition) {
+        L.i("Build plugin for " + fsObject.getName() + ": " + type);
         PluginFactory<?, ?> factory = fsObject.getTemplate().getPluginFactoryRepository().getPlugin(type);
         return factory.parse(fsObject, contentsDefinition);
     }
@@ -163,7 +184,7 @@ public abstract class V2FileSystemObject {
         }
         JsonElement pluginElement = contentsDefinition.get("plugins");
         if (pluginElement.isJsonPrimitive()) {
-            L.i("Found plugin: " + pluginElement.getAsString());
+            L.i("Found plugin on " + fsObject.getName() + ": " + pluginElement.getAsString());
             plugins.add(
                     createPlugin(pluginElement.getAsString(), fsObject, contentsDefinition)
             );
@@ -171,7 +192,7 @@ public abstract class V2FileSystemObject {
             JsonArray pluginsArray = assertJsonArray("plugins", pluginElement);
             for (JsonElement jsonElement : pluginsArray) {
                 Assert.isTrue(jsonElement.isJsonPrimitive(), "Plugin list must be a list of JSON primitives and must be strings!");
-                L.i("Found plugin(s): " + jsonElement.getAsString());
+                L.i("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
                 plugins.add(
                         createPlugin(jsonElement.getAsString(), fsObject, contentsDefinition)
                 );

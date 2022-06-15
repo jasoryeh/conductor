@@ -6,6 +6,7 @@ import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.util.TerminalColors;
 
 import java.io.File;
 import java.io.InputStream;
@@ -80,6 +81,8 @@ public class URLDownloader extends Downloader {
         InputStream inputStream = huc.getInputStream();
         FileUtils.copyInputStreamToFile(inputStream, out);
         inputStream.close();
+
+        this.log(TerminalColors.GREEN.wrap("Successfully transferred ") + out.getAbsolutePath());
 
         return true;
     }

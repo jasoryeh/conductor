@@ -13,7 +13,7 @@ public class FileUtils {
     public static boolean delete(File f) {
         L.s(FILE_DELETE_LOG_PREFIX, "Delete: " + f.getAbsolutePath());
         if (!f.exists()) {
-            L.s("File at " + f.getAbsolutePath() + " doesn't exist, we will assume it's already deleted.");
+            L.s(FILE_DELETE_LOG_PREFIX,"File at " + f.getAbsolutePath() + " doesn't exist, we will assume it's already deleted.");
             return true;
         }
         if(Files.isSymbolicLink(f.toPath())) {
@@ -31,7 +31,7 @@ public class FileUtils {
     public static boolean deleteFile(File f) {
         L.s(FILE_DELETE_LOG_PREFIX, "Deleting file: " + f.getAbsolutePath());
         if (!f.exists()) {
-            L.s("File at " + f.getAbsolutePath() + " doesn't exist, we will assume it's already deleted.");
+            L.s(FILE_DELETE_LOG_PREFIX,"File at " + f.getAbsolutePath() + " doesn't exist, we will assume it's already deleted.");
             return true;
         }
         try {
@@ -51,7 +51,7 @@ public class FileUtils {
     public static boolean deleteFolder(File f) {
         L.s(FILE_DELETE_LOG_PREFIX, "Deleting directory: " + f.getAbsolutePath());
         if (!f.exists()) {
-            L.s("File at " + f.getAbsolutePath() + " doesn't exist, we will assume it's already deleted.");
+            L.s(FILE_DELETE_LOG_PREFIX,"File at " + f.getAbsolutePath() + " doesn't exist, we will assume it's already deleted.");
             return true;
         }
         for (File file : f.listFiles()) {

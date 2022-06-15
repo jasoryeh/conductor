@@ -1,7 +1,6 @@
 package tk.jasoryeh.conductor;
 
 import com.google.gson.JsonObject;
-import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.plugins.Plugin;
 import tk.jasoryeh.conductor.util.Assert;
 import tk.jasoryeh.conductor.util.FileUtils;
@@ -27,11 +26,10 @@ public class V2FolderObject extends V2FileSystemObject {
 
     @Override
     public void parse() {
-        L.i("Parsing folder " + this.name);
         JsonObject contentDefinition = assertJsonObject("content",
                 V2FileSystemObject.getContentElement(this.definition));
         this.plugins.addAll(V2FileObject.parsePlugins(this, contentDefinition));
-        this.children = V2FileSystemObject.parseFilesystem(this,
+        this.children = V2FileSystemObject.buildFilesystemModel(this,
                 contentDefinition);
         for (V2FileSystemObject child : this.children) {
             // run parse on children too.
@@ -63,11 +61,11 @@ public class V2FolderObject extends V2FileSystemObject {
     }
 
     @Override
-    public void create() {
+    public void apply() {
         File file = this.getFile();
         Assert.isTrue(file.exists() || file.mkdirs(), "Could not guarantee the existence of " + file.getAbsolutePath());
         for (V2FileSystemObject child : this.children) {
-            child.create();
+            child.apply();
         }
         for (Plugin plugin : this.plugins) {
             plugin.execute();

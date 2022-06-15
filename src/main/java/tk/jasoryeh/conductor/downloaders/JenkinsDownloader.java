@@ -11,6 +11,7 @@ import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.secrets.JenkinsPluginSecret;
 import tk.jasoryeh.conductor.util.Assert;
 import tk.jasoryeh.conductor.util.FileUtils;
+import tk.jasoryeh.conductor.util.TerminalColors;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -67,13 +68,13 @@ public class JenkinsDownloader extends Downloader {
 
         this.log("Looking for artifact: " + this.artifactName);
         for (Artifact artifact : artifacts) {
-            this.log(String.format("Found artifact | %s | %s", artifact.getFileName(), artifact.getDisplayPath()));
+            this.log(String.format("Found artifact | %s | %s", artifact.getFileName(), artifact.getRelativePath()));
 
             if (!artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
                 continue;
             }
 
-            this.log(String.format("Artifact matched | %s | %s |  retrieving from jenkins as | %s",
+            this.log(String.format(TerminalColors.GREEN.wrap("Artifact matched") + " | %s | %s |  retrieving from jenkins as | %s",
                     artifact.getFileName(),
                     artifact.getDisplayPath(),
                     this.destination.getAbsolutePath()));
@@ -85,7 +86,7 @@ public class JenkinsDownloader extends Downloader {
             FileOutputStream outputStream = new FileOutputStream(this.destination);
             outputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
 
-            this.log("Successfully transferred " + this.artifactName);
+            this.log(TerminalColors.GREEN.wrap("Successfully transferred ") + this.artifactName);
 
             outputStream.close();
             readableByteChannel.close();
@@ -93,7 +94,7 @@ public class JenkinsDownloader extends Downloader {
             return true;
         }
 
-        this.log("Unable to find the artifact/build | " + this.job + " | " + this.artifactName + " #" + this.number);
+        this.log(TerminalColors.RED.wrap("Unable to find the artifact/build") + " | " + this.job + " | " + this.artifactName + " #" + this.number);
         return false;
     }
     

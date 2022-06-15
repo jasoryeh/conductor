@@ -29,7 +29,6 @@ public class V2FileObject extends V2FileSystemObject {
 
     @Override
     public void parse() {
-        L.i("Parsing file " + this.name);
         JsonElement rawContent = V2FileSystemObject.getContentElement(this.definition);
         if (rawContent.isJsonObject()) {
             this.plugins.addAll(V2FileObject.parsePlugins(this, rawContent.getAsJsonObject()));
@@ -69,7 +68,7 @@ public class V2FileObject extends V2FileSystemObject {
 
     @SneakyThrows
     @Override
-    public void create() {
+    public void apply() {
         for (Plugin plugin : this.plugins) {
             plugin.execute();
         }

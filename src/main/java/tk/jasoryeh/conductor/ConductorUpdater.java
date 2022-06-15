@@ -46,7 +46,7 @@ public class ConductorUpdater {
         LauncherConfiguration launchConfig = LauncherConfiguration.get();
         LauncherConfiguration.UpdateConfig self = launchConfig.getUpdateConfig();
         if(!self.isUpdate()) {
-            log("Aborting, not allowed to update per configuration rule.");
+            log("Not updating...");
             return false;
         }
 
