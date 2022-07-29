@@ -41,7 +41,11 @@ public class LauncherConfiguration {
     @Getter
     private final JenkinsPluginSecret jenkinsConfig;
 
+    @Getter
+    private final boolean debug;
+
     public LauncherConfiguration(PropertiesFile raw) {
+        this.debug = Boolean.parseBoolean(raw.getString("debug", "false"));
         this.name = raw.getString("name", generateName());
         this.config = raw.getString("config");
         this.configSource = raw.getString("config.source", "filesystem").toLowerCase();
