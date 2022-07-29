@@ -1,8 +1,6 @@
 package tk.jasoryeh.conductor;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import tk.jasoryeh.conductor.log.L;
@@ -20,6 +18,7 @@ import java.util.regex.Pattern;
 public class V2Template {
     public static final String TEMPORARY_DIR = "launcher_tmp";
 
+    private final Conductor conductor;
     private final JsonObject rootObject;
 
     @Getter
@@ -38,8 +37,9 @@ public class V2Template {
     public Map<String, String> variables = new HashMap<>();
     public List<V2Template> includes;
 
-    public V2Template(JsonObject object) {
-        this.rootObject = object;
+    public V2Template(Conductor conductor, JsonObject rootObject) {
+        this.conductor = conductor;
+        this.rootObject = rootObject;
 
         this.parseMetadata();
         L.i("Template found: " + this.name + " (" + this.version + ")" + " -> " + this.description);
@@ -87,7 +87,7 @@ public class V2Template {
                     Utility.remoteFileToString(
                             includeURL.toString()));
             includeURLs.add(
-                    new V2Template(
+                    new V2Template(this.conductor,
                             V2FileSystemObject.assertJsonObject("include @ " + includeURL, parse)));
         }
         return includeURLs;

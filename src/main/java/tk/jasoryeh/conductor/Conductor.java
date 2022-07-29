@@ -40,7 +40,7 @@ public class Conductor extends Boot {
     public void onEnable() {
         this.launcherConfig = LauncherConfiguration.get();
         JsonObject rawTemplate = Objects.requireNonNull(this.launcherConfig.parseConfig());
-        this.templateConfig = new V2Template(rawTemplate);
+        this.templateConfig = new V2Template(this, rawTemplate);
 
         List<V2FileSystemObject> fsObjs = this.templateConfig.buildFilesystemModel();
         L.i("Found " + fsObjs.size() + " root object definitions.");
