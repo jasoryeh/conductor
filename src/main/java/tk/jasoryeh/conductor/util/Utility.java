@@ -1,5 +1,7 @@
 package tk.jasoryeh.conductor.util;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import lombok.SneakyThrows;
 import org.javalite.http.Get;
 import org.javalite.http.Http;
@@ -15,6 +17,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public class Utility {
+
+    public static final Gson PRETTY_PRINTER = new GsonBuilder().setPrettyPrinting().create();
 
     public static File getCurrentDirectory() {
         return FileSystems.getDefault().getPath(".").toFile();
