@@ -113,14 +113,14 @@ public abstract class V2FileSystemObject {
 
     public static JsonObject assertJsonObject(String k, JsonElement e) {
         if (!e.isJsonObject()) {
-            throw new InvalidConfigurationException(String.format("A template definition in the filesystem must be defined as a JSON object! at key: %s", k));
+            throw new InvalidConfigurationException(String.format("A template definition in the filesystem must be defined as a JSON object (found %s)! at key: %s", e.getClass().getCanonicalName(), k));
         }
         return e.getAsJsonObject();
     }
 
     public static JsonArray assertJsonArray(String k, JsonElement e) {
         if (!e.isJsonArray()) {
-            throw new InvalidConfigurationException(String.format("A template definition in the filesystem must be defined as a JSON object! at key: %s", k));
+            throw new InvalidConfigurationException(String.format("A template definition in the filesystem must be defined as a JSON array (found %s)! at key: %s", e.getClass().getCanonicalName(), k));
         }
         return e.getAsJsonArray();
     }
@@ -134,7 +134,7 @@ public abstract class V2FileSystemObject {
 
     public static JsonElement getContentElement(JsonObject o) {
         if (!o.has("content")) {
-            throw new InvalidConfigurationException("A tempalte definition does not have it's content defined!");
+            throw new InvalidConfigurationException("A template definition does not have it's content defined!");
         }
         return o.get("content");
     }
@@ -148,6 +148,7 @@ public abstract class V2FileSystemObject {
     }
 
     public static List<V2FileSystemObject> buildFilesystemModel(V2Template template, V2FileSystemObject fsObject, JsonObject definition) {
+        L.d("Building filesystem model for: " + (fsObject == null ? "(root)" : fsObject.getName()));
         ArrayList<V2FileSystemObject> fsDefinitions = new ArrayList<>();
         for (String fileName : Objects.requireNonNull(definition).keySet()) {
             fileName = template.resolveVariables(fileName);

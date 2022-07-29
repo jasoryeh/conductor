@@ -197,12 +197,17 @@ public class V2Template {
      */
     public List<V2FileSystemObject> buildFilesystemModel() {
         JsonObject fsDefinition = Objects.requireNonNull(this.getFinalizedFilesystemDefinition());
+
+        L.d("Finalized filesystem template model:");
+        L.d(Utility.PRETTY_PRINTER.toJson(fsDefinition));
+
         return V2FileSystemObject.buildFilesystemModel(this, fsDefinition);
     }
 
     public V2Secret getSecret(String secretKey) {
         return Objects.requireNonNull(
-                this.secretMap.get(secretKey)
+                this.secretMap.get(secretKey),
+                "Failed to find a required secret as defined by key: " + secretKey
         );
     }
 
