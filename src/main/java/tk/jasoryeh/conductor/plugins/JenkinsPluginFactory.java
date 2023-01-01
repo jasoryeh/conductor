@@ -3,6 +3,7 @@ package tk.jasoryeh.conductor.plugins;
 import com.google.gson.JsonObject;
 import tk.jasoryeh.conductor.V2FileSystemObject;
 import tk.jasoryeh.conductor.V2Template;
+import tk.jasoryeh.conductor.config.InvalidConfigurationException;
 import tk.jasoryeh.conductor.secrets.JenkinsPluginSecret;
 
 public class JenkinsPluginFactory extends PluginFactory<JenkinsPlugin, JenkinsPluginSecret> {
@@ -34,11 +35,22 @@ public class JenkinsPluginFactory extends PluginFactory<JenkinsPlugin, JenkinsPl
             return ((JenkinsPluginSecret) template.getSecret(jenkinsSecret.toLowerCase()));
         }
 
-        return new JenkinsPluginSecret(
-                template.resolveVariables(contentDefinition.get("jenkins_host").getAsString()),
-                template.resolveVariables(contentDefinition.get("jenkins_user").getAsString()),
-                template.resolveVariables(contentDefinition.get("jenkins_auth").getAsString())
-        );
+        if (!contentDefinition.has("jenkins_host")) {
+            throw new InvalidConfigurationException(
+                    "Usage of the 'jenkins' plugin requires 'jenkins_secret' or 'jenkin_host' to be set!");
+        }
+
+        String jenkins_host = contentDefinition.get("jenkins_host").getAsString();
+        if (contentDefinition.has("jenkins_user") &&
+                contentDefinition.has("jenkins_auth")) {
+            return new JenkinsPluginSecret(
+                    template.resolveVariables(jenkins_host),
+                    template.resolveVariables(contentDefinition.get("jenkins_user").getAsString()),
+                    template.resolveVariables(contentDefinition.get("jenkins_auth").getAsString())
+            );
+        }
+
+        return new JenkinsPluginSecret(jenkins_host, null, null);
     }
 
     @Override
