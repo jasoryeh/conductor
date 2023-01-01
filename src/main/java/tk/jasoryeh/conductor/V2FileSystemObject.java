@@ -75,7 +75,7 @@ public abstract class V2FileSystemObject {
      */
     public String validate() {
         return null;
-    };
+    }
 
     /**
      * Parse the object configuration, and prepare to perform downloads and adjustments.
@@ -156,6 +156,7 @@ public abstract class V2FileSystemObject {
 
             String definitionType = getType(fileDefinition);
             L.i("Found " + definitionType + ": " + fileName);
+            // todo: lookup via annotated type definition key
             switch(definitionType) {
                 case "file":
                     fsDefinitions.add(new V2FileObject(template, fsObject, fileName, fileDefinition));
@@ -203,5 +204,26 @@ public abstract class V2FileSystemObject {
             //throw new InvalidConfigurationException("Plugin list must be an array (list of strings that are plugin names) or a primitive (string of plugin name)");
         }
         return plugins;
+    }
+
+    public String getDefinedType() {
+        if (!this.definition.has("type")) {
+            throw new IllegalArgumentException("A type must be defined on all template FSOs!");
+        }
+        return this.definition.get("type").getAsString();
+    }
+
+    public String getTypeString() {
+        return getTypeStringOf(this.getClass());
+    }
+
+    public static String getTypeStringOf(Class<? extends V2FileSystemObject> clazz) {
+        Objects.requireNonNull(clazz, "Cannot getTypeStringOf null!");
+        Class<V2FileSystemObjectTypeKey> fsok = V2FileSystemObjectTypeKey.class;
+        if (clazz.isAnnotationPresent(fsok)) {
+            return clazz.getAnnotation(fsok).value();
+        }
+        throw new IllegalStateException(
+                String.format("FSO %s is not annotated with %s!", clazz.getCanonicalName(), fsok.getCanonicalName()));
     }
 }

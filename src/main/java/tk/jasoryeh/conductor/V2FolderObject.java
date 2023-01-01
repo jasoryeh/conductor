@@ -10,6 +10,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+@V2FileSystemObjectTypeKey("folder")
 public class V2FolderObject extends V2FileSystemObject {
 
     public List<V2FileSystemObject> children = new ArrayList<>();
@@ -20,7 +21,7 @@ public class V2FolderObject extends V2FileSystemObject {
 
     @Override
     public String validate() {
-        boolean validateType = this.definition.has("type") && this.definition.get("type").getAsString().equalsIgnoreCase("folder");
+        boolean validateType = this.getDefinedType().equalsIgnoreCase(this.getTypeString());
         boolean validateContent = this.definition.has("content");
         return (validateType && validateContent) ? null : "Invalid definition!";
     }

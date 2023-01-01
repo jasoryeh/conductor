@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import tk.jasoryeh.conductor.config.InvalidConfigurationException;
-import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.plugins.Plugin;
 import tk.jasoryeh.conductor.util.Assert;
 
@@ -15,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.regex.Pattern;
 
+@V2FileSystemObjectTypeKey("file")
 public class V2FileObject extends V2FileSystemObject {
     public V2FileObject(V2Template template, V2FileSystemObject parent, String name, JsonObject definition) {
         super(template, parent, name, definition);
@@ -22,7 +22,7 @@ public class V2FileObject extends V2FileSystemObject {
 
     @Override
     public String validate() {
-        boolean validateType = this.definition.has("type") && this.definition.get("type").getAsString().equalsIgnoreCase("file");
+        boolean validateType = this.getDefinedType().equalsIgnoreCase(this.getTypeString());
         boolean validateContent = this.definition.has("content");
         return (validateType && validateContent) ? null : "Invalid definition!";
     }
