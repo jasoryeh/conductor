@@ -69,7 +69,7 @@ public class V2Template {
         ArrayList<V2Template> includeURLs = new ArrayList<>();
         JsonElement conductorMetadataObject = Objects.requireNonNull(
                 this.rootObject.get("_conductor"),
-                "Conductor metadata is not set!");
+                "The configuration's metadata is not set!");
         JsonObject conductorMetaElement = conductorMetadataObject.getAsJsonObject();
         if (!conductorMetaElement.has("includes")) {
             L.i("Includes are not defined, assuming none are used.");
@@ -96,7 +96,7 @@ public class V2Template {
     public void parseMetadata() {
         JsonElement conductorMetadataObject = Objects.requireNonNull(
                 this.rootObject.get("_conductor"),
-                "Conductor metadata is not set!");
+                "The configuration's metadata is not set!");
 
         JsonObject object = conductorMetadataObject.getAsJsonObject();
         this.version = object.get("version").getAsInt();
@@ -107,7 +107,7 @@ public class V2Template {
     public void parseVariables() {
         JsonElement conductorMetadataObject = Objects.requireNonNull(
                 this.rootObject.get("_conductor"),
-                "Conductor metadata is not set!");
+                "The configuration's metadata is not set!");
         JsonObject object = conductorMetadataObject.getAsJsonObject();
         // vars
         if (object.has("variables")) {
@@ -123,7 +123,7 @@ public class V2Template {
     public void parseSecrets() {
         JsonElement conductorMetadataObject = Objects.requireNonNull(
                 this.rootObject.get("_conductor"),
-                "Conductor metadata is not set!");
+                "The configuration's metadata is not set!");
         JsonObject object = conductorMetadataObject.getAsJsonObject();
         // secrets
         if (object.has("secrets")) {
