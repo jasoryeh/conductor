@@ -24,7 +24,7 @@ public class ConductorUpdater {
             stringJoiner.add(o1.toString());
         }
 
-        L.s("[Conductor Updater]", stringJoiner);
+        L.d("[Conductor Updater]", stringJoiner);
     }
 
     private static final String FINAL_NAME = "conductor_latest.jar";
