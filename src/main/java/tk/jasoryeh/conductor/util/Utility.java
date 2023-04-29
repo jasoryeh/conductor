@@ -66,16 +66,24 @@ public class Utility {
         if(locationDomain.contains("@")) {
             basic = true;
             String authString = locationDomain.split("@")[0];
-            basicAuth = authString.split(":");
+            basicAuth = authString.split(":", 2);
             url = url.replaceFirst(Pattern.quote(authString + "@"), "");
         }
-        Get request = basic ? Http.get(url).basic(basicAuth[0], basicAuth[1]) : Http.get(url);
+        Get request;
+        request = Http.get(url);
+        if (basic && basicAuth.length > 0) {
+            if (basicAuth.length == 1) {
+                request = request.basic(basicAuth[0]);
+            } else {
+                request = request.basic(basicAuth[0], basicAuth[1]);
+            }
+        }
         request.header("User-Agent", "Conductor, Java");
 
         int responseCode = request.responseCode();
         if(!String.valueOf(responseCode).startsWith("2")) {
-            L.w("[Download] Remote server at " + url + " returned a " + responseCode + " response, " +
-                    "we ignore this, but you should see this.");
+            L.w("[Download] Remote server at " + url + " returned a " + responseCode +
+                            " (" + request.responseMessage() + "), " + "we ignored this, but you should make sure this is correct.");
         }
         return request.text();
     }
