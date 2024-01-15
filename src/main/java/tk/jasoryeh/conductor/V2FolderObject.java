@@ -50,7 +50,7 @@ public class V2FolderObject extends V2FileSystemObject {
         File temporary = this.getTemporary();
         Assert.isTrue(temporary.exists() || temporary.mkdirs(), String.format("Creation of temp workdir at %s failed!", temporary.getAbsolutePath()));
 
-        ExecutorService threadPool = Conductor.getInstance().getThreadPool();
+        /*ExecutorService threadPool = Conductor.getInstance().getThreadPool();
         CountDownLatch latch = new CountDownLatch(this.children.size());
         for (V2FileSystemObject child : this.children) {
             threadPool.submit(() -> {
@@ -72,6 +72,10 @@ public class V2FolderObject extends V2FileSystemObject {
             this.logger.debug("Submitted tasks wait latch left: " + latch.getCount() + " on " + this.getName() + "'s sub-files.");
             complete = latch.await(5, TimeUnit.SECONDS);
             this.logger.debug("Submitted tasks end wait latch");
+        }*/
+
+        for (V2FileSystemObject child : this.children) {
+            child.prepare();
         }
 
         for (Plugin plugin : this.plugins) {
