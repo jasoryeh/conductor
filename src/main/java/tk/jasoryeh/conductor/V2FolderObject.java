@@ -55,7 +55,12 @@ public class V2FolderObject extends V2FileSystemObject {
         for (V2FileSystemObject child : this.children) {
             threadPool.submit(() -> {
                 this.logger.debug("Submitted task run " + child.getName());
-                child.prepare();
+                try {
+                    child.prepare();
+                } catch(Exception e) {
+                    this.logger.warn("Submitted task run errored " + child.getName());
+                    e.printStackTrace();
+                }
                 latch.countDown();
                 this.logger.debug("Submitted task conclude " + child.getName());
             });
