@@ -105,14 +105,13 @@ public class ConductorUpdater {
         // the action
         File jarFile = new File(Utility.getCurrentDirectory(), FINAL_NAME);
         URL[] urls = new URL[]{jarFile.toURI().toURL()};
-        log(jarFile.toURI().toURL());
-        log(File.separator);
-        log(Utility.getCurrentDirectory());
+        log("Jar file is at: " + jarFile.toURI().toURL());
+        log("File separator: " + File.separator);
+        log("Current directory: " + Utility.getCurrentDirectory());
         URLClassLoader customLoader = new URLClassLoader(urls, null);
 
         Class<?> conductorClass = customLoader.loadClass(
-                new Manifest(
-                        customLoader.getResourceAsStream("conductor-manifest.mf"))
+                new Manifest(customLoader.getResourceAsStream("conductor-manifest.mf"))
                         .getMainAttributes().getValue("Conductor-Boot")
         );
 
@@ -122,8 +121,9 @@ public class ConductorUpdater {
         }
 
         // Run. - also waits for completion.. i think
+        logger.info("Starting downloaded conductor version...");
         try {
-            conductorClass.getMethod("quickStart").invoke(ConductorMain.class.getClassLoader());
+            conductorClass.getMethod("quickStart", ClassLoader.class).invoke(null, ConductorMain.class.getClassLoader());
             return true;
         } catch(Exception e) {
             try {
