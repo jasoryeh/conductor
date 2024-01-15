@@ -20,6 +20,7 @@ public class V2Template {
 
     @Getter
     private final Logger logger;
+    @Getter
     private final Conductor conductor;
     private final JsonObject rootObject;
 

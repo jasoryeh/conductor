@@ -9,9 +9,7 @@ import tk.jasoryeh.conductor.util.FileUtils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @V2FileSystemObjectTypeKey("folder")
 public class V2FolderObject extends V2FileSystemObject {
@@ -50,34 +48,15 @@ public class V2FolderObject extends V2FileSystemObject {
         File temporary = this.getTemporary();
         Assert.isTrue(temporary.exists() || temporary.mkdirs(), String.format("Creation of temp workdir at %s failed!", temporary.getAbsolutePath()));
 
-        /*ExecutorService threadPool = Conductor.getInstance().getThreadPool();
-        CountDownLatch latch = new CountDownLatch(this.children.size());
+        CountDownLatch countDownLatch = new CountDownLatch(this.children.size());
         for (V2FileSystemObject child : this.children) {
-            threadPool.submit(() -> {
-                this.logger.debug("Submitted task run " + child.getName());
-                try {
-                    child.prepare();
-                } catch(Exception e) {
-                    this.logger.warn("Submitted task run errored " + child.getName());
-                    e.printStackTrace();
-                }
-                latch.countDown();
-                this.logger.debug("Submitted task conclude " + child.getName());
+            this.conductor.threadPool.execute(() -> {
+                child.prepare();
+                countDownLatch.countDown();
             });
-            this.logger.debug("Submitted task " + child.getName());
         }
 
-        boolean complete = false;
-        while (!complete) {
-            this.logger.debug("Submitted tasks wait latch left: " + latch.getCount() + " on " + this.getName() + "'s sub-files.");
-            complete = latch.await(5, TimeUnit.SECONDS);
-            this.logger.debug("Submitted tasks end wait latch");
-        }*/
-
-        for (V2FileSystemObject child : this.children) {
-            child.prepare();
-        }
-
+        countDownLatch.await();
         for (Plugin plugin : this.plugins) {
             plugin.prepare();
         }

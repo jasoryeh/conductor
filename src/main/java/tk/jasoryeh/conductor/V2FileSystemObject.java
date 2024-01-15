@@ -26,6 +26,8 @@ public abstract class V2FileSystemObject {
     V2FileSystemObject parent;
     @Getter
     String name;
+    @Getter
+    Conductor conductor;
 
     protected final List<Plugin> plugins = new ArrayList<>();
 
@@ -34,6 +36,7 @@ public abstract class V2FileSystemObject {
         this.logger = new Logger(this.parent == null ? null : this.parent.logger,
                 this.parent == null ? (V2FileSystemObject.class.getSimpleName() + " " + name) : name);
         this.template = template;
+        this.conductor = template.getConductor();
 
         this.name = name;
         this.definition = definition;

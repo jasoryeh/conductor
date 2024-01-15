@@ -3,16 +3,17 @@ package tk.jasoryeh.conductor;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class Conductor extends Boot {
     private static Logger qsLog = new Logger(Conductor.class.getSimpleName() + " Boot");
@@ -24,11 +25,13 @@ public class Conductor extends Boot {
     private static Conductor instance;
 
     @Getter
-    protected ExecutorService threadPool = Executors.newSingleThreadExecutor();
+    protected ForkJoinPool threadPool;
     @Getter
     private LauncherConfiguration launcherConfig;
     @Getter
     private V2Template templateConfig;
+
+    private List<V2FileSystemObject> layout = new ArrayList<>();
 
     /**
      * With the creation of this, we auto call onEnable and start the process
@@ -44,27 +47,39 @@ public class Conductor extends Boot {
         this.logger.debug("Temporary storage in - " + new File(Utility.getCurrentDirectory(), V2Template.TEMPORARY_DIR).getAbsolutePath());
     }
 
+    @SneakyThrows
+    public void execute() {
+        this.logger.info("Preparing resources....");
+        this.layout.forEach(obj -> this.threadPool.execute(obj::prepare));
+        while (!this.threadPool.awaitQuiescence(5, TimeUnit.SECONDS)) {
+            this.logger.info("Waiting for finishing of tasks: " + this.threadPool.getQueuedTaskCount() + " in line");
+        }
+        //this.layout.forEach(V2FileSystemObject::prepare);
+
+        this.logger.info("Cleaning up work directory...");
+        this.layout.forEach(V2FileSystemObject::delete);
+
+        this.logger.info("Applying changes to work directory...");
+        this.layout.forEach(V2FileSystemObject::apply);
+
+        this.logger.info("Changes applied!");
+    }
+
     @Override
     public void onEnable() {
         this.launcherConfig = LauncherConfiguration.get();
         JsonObject rawTemplate = Objects.requireNonNull(this.launcherConfig.parseConfig());
         this.templateConfig = new V2Template(this, rawTemplate);
-        this.threadPool = Executors.newFixedThreadPool(this.launcherConfig.getPoolSize());
+        this.threadPool = new ForkJoinPool(this.launcherConfig.getPoolSize());
 
-        List<V2FileSystemObject> fsObjs = this.templateConfig.buildFilesystemModel();
-        this.logger.info("Found " + fsObjs.size() + " root object definitions.");
+        this.layout = this.templateConfig.buildFilesystemModel();
+        this.logger.info("Found " + this.layout.size() + " root object definitions.");
         this.logger.info("Parsing object definitions...");
-        fsObjs.forEach(V2FileSystemObject::parse);
+        this.layout.forEach(V2FileSystemObject::parse);
         this.logger.info("Tree:");
-        this.displayTree(fsObjs);
-        this.logger.info("Preparing resources....");
-        // todo: asynchronously prepare resources?
-        fsObjs.forEach(V2FileSystemObject::prepare);
-        this.logger.info("Cleaning up work directory...");
-        fsObjs.forEach(V2FileSystemObject::delete);
-        this.logger.info("Applying changes to work directory...");
-        fsObjs.forEach(V2FileSystemObject::apply);
-        this.logger.info("Changes applied!");
+        this.displayTree(this.layout);
+        this.logger.info("Executing...");
+        this.execute();
     }
 
     public void onDisable() {
@@ -79,6 +94,7 @@ public class Conductor extends Boot {
             getInstance().onDisable();
         } catch(Exception e) {
             // ignore, it's only here to ensure the shutdown is always happening
+            e.printStackTrace();
         }
 
         System.exit(err ? 1 : 0);
