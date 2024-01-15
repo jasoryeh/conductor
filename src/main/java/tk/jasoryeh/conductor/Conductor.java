@@ -11,6 +11,8 @@ import tk.jasoryeh.conductor.util.Utility;
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Conductor extends Boot {
     private static Logger qsLog = new Logger(Conductor.class.getSimpleName() + " Boot");
@@ -21,6 +23,8 @@ public class Conductor extends Boot {
     @Setter
     private static Conductor instance;
 
+    @Getter
+    protected ExecutorService threadPool = Executors.newSingleThreadExecutor();
     @Getter
     private LauncherConfiguration launcherConfig;
     @Getter
@@ -45,6 +49,7 @@ public class Conductor extends Boot {
         this.launcherConfig = LauncherConfiguration.get();
         JsonObject rawTemplate = Objects.requireNonNull(this.launcherConfig.parseConfig());
         this.templateConfig = new V2Template(this, rawTemplate);
+        this.threadPool = Executors.newFixedThreadPool(this.launcherConfig.getPoolSize());
 
         List<V2FileSystemObject> fsObjs = this.templateConfig.buildFilesystemModel();
         this.logger.info("Found " + fsObjs.size() + " root object definitions.");
@@ -63,6 +68,9 @@ public class Conductor extends Boot {
     }
 
     public void onDisable() {
+        this.logger.info("Shutting down thread pool...");
+        this.threadPool.shutdown();
+        this.logger.info("Thread pool shut down.");
         this.logger.info("Conductor shut down.");
     }
 

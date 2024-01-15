@@ -29,6 +29,8 @@ public class LauncherConfiguration {
 
     @Getter
     private final Logger logger;
+    @Getter
+    private final int poolSize;
     // class
     @Getter
     private final String name;
@@ -49,6 +51,7 @@ public class LauncherConfiguration {
     public LauncherConfiguration(PropertiesFile raw) {
         this.logger = new Logger(LauncherConfiguration.class.getSimpleName());
         this.debug = Boolean.parseBoolean(raw.getString("debug", "false"));
+        this.poolSize = Integer.parseInt(raw.getString("pool", "4"));
         this.name = raw.getString("name", generateName());
         this.config = raw.getString("config");
         this.configSource = raw.getString("config.source", "filesystem").toLowerCase();
