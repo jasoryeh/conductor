@@ -52,7 +52,9 @@ public class Conductor extends Boot {
         this.logger.info("Preparing resources....");
         this.layout.forEach(obj -> this.threadPool.execute(obj::prepare));
         while (!this.threadPool.awaitQuiescence(5, TimeUnit.SECONDS)) {
-            this.logger.info("Waiting for finishing of tasks: " + this.threadPool.getQueuedTaskCount() + " in line");
+            this.logger.info("Waiting for finishing of tasks: "
+                    + this.threadPool.getQueuedTaskCount() + " in line "
+                    + this.threadPool.getActiveThreadCount() + " active threads");
         }
         //this.layout.forEach(V2FileSystemObject::prepare);
 
