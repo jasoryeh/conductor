@@ -22,10 +22,10 @@ public class ConductorMain {
     public static void init() {
         // update
         if (!ConductorUpdater.update()) {
-            logger.info("Up to date!");
+            logger.info("Could not update! Running the current version of conductor.");
             Conductor.quickStart(ConductorMain.class.getClassLoader());
         } else {
-            logger.info("Conductor was updated.");
+            logger.info("Conductor was updated!");
             Conductor.shutdown(false);
         }
     }
