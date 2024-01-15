@@ -5,7 +5,6 @@ import tk.jasoryeh.conductor.config.LauncherConfiguration;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
-import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.Utility;
 
@@ -18,13 +17,15 @@ import java.util.jar.Manifest;
 
 public class ConductorUpdater {
 
+    private static Logger logger = new Logger(ConductorUpdater.class.getSimpleName());
+
     private static void log(Object... o) {
         StringJoiner stringJoiner = new StringJoiner(" ");
         for (Object o1 : o) {
             stringJoiner.add(o1.toString());
         }
 
-        L.d("[Conductor Updater]", stringJoiner);
+        logger.debug("[Conductor Updater]", stringJoiner);
     }
 
     private static final String FINAL_NAME = "conductor_latest.jar";
@@ -98,9 +99,9 @@ public class ConductorUpdater {
         // the action
         File jarFile = new File(Utility.getCurrentDirectory(), FINAL_NAME);
         URL[] urls = new URL[]{jarFile.toURI().toURL()};
-        L.d(jarFile.toURI().toURL());
-        L.d(File.separator);
-        L.d(Utility.getCurrentDirectory());
+        log(jarFile.toURI().toURL());
+        log(File.separator);
+        log(Utility.getCurrentDirectory());
         URLClassLoader customLoader = new URLClassLoader(urls, null);
 
         Class<?> conductorClass = customLoader.loadClass(

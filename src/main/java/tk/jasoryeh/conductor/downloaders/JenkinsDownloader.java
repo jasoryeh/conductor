@@ -7,7 +7,6 @@ import com.offbytwo.jenkins.model.Job;
 import com.offbytwo.jenkins.model.JobWithDetails;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.secrets.JenkinsPluginSecret;
 import tk.jasoryeh.conductor.util.Assert;
 import tk.jasoryeh.conductor.util.FileUtils;
@@ -99,6 +98,6 @@ public class JenkinsDownloader extends Downloader {
     }
     
     private void log(String msg) {
-        L.i("[Jenkins] " + msg);
+        this.logger.info(msg);
     }
 }

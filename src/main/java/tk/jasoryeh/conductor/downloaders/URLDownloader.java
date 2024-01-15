@@ -5,7 +5,6 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
-import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.util.TerminalColors;
 
 import java.io.File;
@@ -88,6 +87,6 @@ public class URLDownloader extends Downloader {
     }
 
     private void log(String msg) {
-        L.i("[URL] " + msg);
+        this.logger.info(msg);
     }
 }

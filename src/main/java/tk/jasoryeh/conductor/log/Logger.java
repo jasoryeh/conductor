@@ -10,16 +10,32 @@ public class Logger {
      * The instance of the logger
      */
     private static Logger instance;
+    private Logger parent = null;
+    private String name;
 
     public static Logger getLogger() {
-        return (instance == null) ? new Logger() : instance;
+        instance = (instance == null) ? new Logger() : instance;
+        return instance;
     }
 
     /**
      * Unnecessary Instance-based logger
      */
     public Logger() {
-        instance = this;
+        this(null, null);
+    }
+
+    public Logger(String name) {
+        this(null, name);
+    }
+
+    public Logger(Logger parent, String name) {
+        this.parent = parent;
+        this.name = name;
+    }
+
+    public Logger child(String name) {
+        return new Logger(this, name);
     }
 
     public final static String EMPTY = "";
@@ -87,6 +103,14 @@ public class Logger {
         System.out.println(say);
     }
 
+    protected String getName() {
+        String build = this.name == null ? "" : ("[" + TerminalColors.WHITE_UNDERLINED + this.name + TerminalColors.RESET + "]");
+        if (this.parent != null) {
+            build = this.parent.getName() + (build.length() == 0 ? "" : (" " + build));
+        }
+        return build;
+    }
+
     /**
      * Generate the message with specified prefix and messages
      * @param prefix Prefix to start with
@@ -98,7 +122,21 @@ public class Logger {
         for(Object o : objects) {
             joiner.add(String.valueOf(o));
         }
-        return TerminalColors.RESET + "" + TerminalColors.WHITE + logDate() + " " + prefix + " " + TerminalColors.WHITE + joiner.toString() + TerminalColors.RESET;
+        StringBuilder logMessage = new StringBuilder();
+        logMessage.append(TerminalColors.RESET); // reset the color for this message
+        logMessage.append(TerminalColors.WHITE); // set to white
+        logMessage.append(logDate()); // start with date
+        logMessage.append(" ");
+        logMessage.append(prefix);
+        if (this.name != null) {
+            logMessage.append(" ");
+            logMessage.append(this.getName());
+        }
+        logMessage.append(" ");
+        logMessage.append(TerminalColors.RESET); // reset colors again
+        logMessage.append(joiner.toString()); // actual message
+        logMessage.append(TerminalColors.RESET); // reset trailing colors
 
+        return logMessage.toString();
     }
 }

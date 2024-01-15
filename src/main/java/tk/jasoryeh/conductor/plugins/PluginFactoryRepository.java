@@ -1,15 +1,18 @@
 package tk.jasoryeh.conductor.plugins;
 
 import tk.jasoryeh.conductor.V2Template;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.log.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class PluginFactoryRepository {
+
+    protected Logger logger;
     public Map<String, PluginFactory<?, ?>> factories = new HashMap<>();
 
     public PluginFactoryRepository(V2Template template) {
+        this.logger = template.getLogger().child(this.getClass().getSimpleName());
         this.register(new HttpPluginFactory(template));
         this.register(new JenkinsPluginFactory(template));
     }
@@ -20,7 +23,7 @@ public class PluginFactoryRepository {
      */
     public void register(PluginFactory<?, ?> factory) {
         factories.put(factory.name(), factory);
-        L.i("Plugin loaded: " + factory.name());
+        this.logger.info("Plugin loaded: " + factory.name());
     }
 
     /**

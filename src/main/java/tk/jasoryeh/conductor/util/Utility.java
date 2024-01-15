@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import lombok.SneakyThrows;
 import org.javalite.http.Get;
 import org.javalite.http.Http;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.log.Logger;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
 
 public class Utility {
 
+    protected static Logger logger = new Logger(Utility.class.getSimpleName());
+
     public static final Gson PRETTY_PRINTER = new GsonBuilder().setPrettyPrinting().create();
 
     public static File getCurrentDirectory() {
@@ -28,7 +30,7 @@ public class Utility {
         boolean success = true;
         File[] files = f.listFiles();
         if (files == null) {
-            L.i("Non-existent folder! " + f.getAbsolutePath());
+            logger.info("Non-existent folder! " + f.getAbsolutePath());
             return true;
         }
         for (File file : files) {
@@ -82,7 +84,7 @@ public class Utility {
 
         int responseCode = request.responseCode();
         if(!String.valueOf(responseCode).startsWith("2")) {
-            L.w("[Download] Remote server at " + url + " returned a " + responseCode +
+            logger.warn("[Download] Remote server at " + url + " returned a " + responseCode +
                             " (" + request.responseMessage() + "), " + "we ignored this, but you should make sure this is correct.");
         }
         return request.text();

@@ -5,4 +5,5 @@ public abstract class Boot {
 
     public abstract void onEnable();
     public abstract void onDisable();
+
 }

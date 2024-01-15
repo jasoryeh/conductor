@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import lombok.Getter;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.secrets.JenkinsPluginSecret;
 import tk.jasoryeh.conductor.util.Utility;
 
@@ -27,6 +27,8 @@ public class LauncherConfiguration {
         return instance;
     }
 
+    @Getter
+    private final Logger logger;
     // class
     @Getter
     private final String name;
@@ -45,6 +47,7 @@ public class LauncherConfiguration {
     private final boolean debug;
 
     public LauncherConfiguration(PropertiesFile raw) {
+        this.logger = new Logger(LauncherConfiguration.class.getSimpleName());
         this.debug = Boolean.parseBoolean(raw.getString("debug", "false"));
         this.name = raw.getString("name", generateName());
         this.config = raw.getString("config");
@@ -132,13 +135,13 @@ public class LauncherConfiguration {
             String parseThisJson = this.loadRawConfig();
             return new JsonParser().parse(parseThisJson).getAsJsonObject();
         } catch(JsonParseException jsonE) {
-            L.e("Your server json configuration is mis-configured. Please double check for errors: " + jsonE.getMessage());
+            this.logger.error("Your server json configuration is mis-configured. Please double check for errors: " + jsonE.getMessage());
             jsonE.printStackTrace();
         } catch(Exception e) {
             // Null pointer for none?
-            L.e("Your serverlauncher.properties is malformed, or inaccessible");
-            L.e("An unexpected error has occurred while processing your server json configuration: " + e.getMessage());
-            e.printStackTrace();
+            this.logger.error("Your serverlauncher.properties is malformed, or inaccessible");
+            this.logger.error("An unexpected error has occurred while processing your server json configuration: " + e.getMessage());
+            throw e;
         }
         return null;
     }

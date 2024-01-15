@@ -28,6 +28,8 @@ public class PropertiesFile {
     private final String envPrefix = "CONDUCTOR";
 
     @Getter
+    private Logger logger;
+    @Getter
     private final String file;
     @Getter
     private final boolean allowCreation;
@@ -44,23 +46,24 @@ public class PropertiesFile {
      * @param allowCreation Create file if not exists?
      */
     public PropertiesFile(String fileName, boolean allowCreation) {
+        this.logger = new Logger(this.getClass().getSimpleName());
         this.file = fileName;
         this.allowCreation = allowCreation;
 
-        Logger.getLogger().debug(String.format("Loading configuration \"%s\"", fileName));
+        this.logger.debug(String.format("Loading configuration \"%s\"", fileName));
         try {
             this.load();
             this.readFileToProperties();
         } catch(IOException e) {
-            Logger.getLogger().error(String.format("Unexpected error: IO. Exiting. %s", e.getMessage()));
+            this.logger.error(String.format("Unexpected error: IO. Exiting. %s", e.getMessage()));
             e.printStackTrace();
 
             Conductor.shutdown(true);
         } catch(Exception e) {
-            Logger.getLogger().error(String.format("Unexpected error: Unknown. Exiting. %s", e.getMessage()));
+            this.logger.error(String.format("Unexpected error: Unknown. Exiting. %s", e.getMessage()));
             e.printStackTrace();
         }
-        Logger.getLogger().info(String.format("Configuration loaded: \"%s\"", fileName));
+        this.logger.info(String.format("Configuration loaded: \"%s\"", fileName));
     }
 
     /**
@@ -71,10 +74,10 @@ public class PropertiesFile {
         this.isEnvironmentallyDeclared = false;
 
         if(this.configurationFile.exists()) {
-            Logger.getLogger().info("File " + this.file + " doesn't exist.");
+            this.logger.info("File " + this.file + " doesn't exist.");
 
             if(!this.allowCreation) {
-                Logger.getLogger().warn("Told not to create. Proceeding anyways.");
+                this.logger.warn("Told not to create. Proceeding anyways.");
             }
 
             return;
@@ -82,16 +85,16 @@ public class PropertiesFile {
             Optional<String> opt1 = Optional.ofNullable(System.getenv("CONDUCTOR_ISCONFIGLESS"));
             this.isEnvironmentallyDeclared = opt1.isPresent() && Boolean.parseBoolean(opt1.get());
             if (this.isEnvironmentallyDeclared) {
-                Logger.getLogger().info("Conductor configuration appears to be environmentally defined.");
+                this.logger.info("Conductor configuration appears to be environmentally defined.");
             } else {
-                Logger.getLogger().info(String.format("Trying to create %s", this.file));
+                this.logger.info(String.format("Trying to create %s", this.file));
 
                 try {
                     URL url = getClass().getResource("/" + this.file);
                     File fo = new File(Utility.getCurrentDirectory(),  this.file);
                     FileUtils.copyURLToFile(url, fo);
                 } catch(Exception e) {
-                    Logger.getLogger().warn(String.format("No default config for %s exists: %s", this.file, this.configurationFile.createNewFile() ? "empty file created in its place" : "failed ot make a file"));
+                    this.logger.warn(String.format("No default config for %s exists: %s", this.file, this.configurationFile.createNewFile() ? "empty file created in its place" : "failed ot make a file"));
                 }
             }
         }

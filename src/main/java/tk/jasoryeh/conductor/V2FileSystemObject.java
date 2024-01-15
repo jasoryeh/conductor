@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import tk.jasoryeh.conductor.config.InvalidConfigurationException;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.plugins.Plugin;
 import tk.jasoryeh.conductor.plugins.PluginFactory;
 import tk.jasoryeh.conductor.util.Assert;
@@ -19,6 +19,8 @@ public abstract class V2FileSystemObject {
     protected final JsonObject definition;
 
     @Getter
+    Logger logger;
+    @Getter
     V2Template template;
     @Getter
     V2FileSystemObject parent;
@@ -29,6 +31,8 @@ public abstract class V2FileSystemObject {
 
     public V2FileSystemObject(V2Template template, V2FileSystemObject parent, String name, JsonObject definition) {
         this.parent = parent;
+        this.logger = new Logger(this.parent == null ? null : this.parent.logger,
+                this.parent == null ? (V2FileSystemObject.class.getSimpleName() + " " + name) : name);
         this.template = template;
 
         this.name = name;
@@ -148,14 +152,15 @@ public abstract class V2FileSystemObject {
     }
 
     public static List<V2FileSystemObject> buildFilesystemModel(V2Template template, V2FileSystemObject fsObject, JsonObject definition) {
-        L.d("Building filesystem model for: " + (fsObject == null ? "(root)" : fsObject.getName()));
+        Logger logger = new Logger(template.getLogger(), V2FileSystemObject.class.getSimpleName() + "@buildFilesystemModel");
+        logger.debug("Building filesystem model for: " + (fsObject == null ? "(root)" : fsObject.getName()));
         ArrayList<V2FileSystemObject> fsDefinitions = new ArrayList<>();
         for (String fileName : Objects.requireNonNull(definition).keySet()) {
             fileName = template.resolveVariables(fileName);
             JsonObject fileDefinition = assertJsonObject(fileName, definition.get(fileName));
 
             String definitionType = getType(fileDefinition);
-            L.i("Found " + definitionType + ": " + fileName);
+            logger.info("Found " + definitionType + ": " + fileName);
             // todo: lookup via annotated type definition key
             switch(definitionType) {
                 case "file":
@@ -168,12 +173,12 @@ public abstract class V2FileSystemObject {
                     throw new InvalidConfigurationException(String.format("Invalid definition type: %s", definitionType));
             }
         }
-        L.i("Parsed " + fsDefinitions.size() + " object definitions.");
+        logger.info("Parsed " + fsDefinitions.size() + " object definitions.");
         return fsDefinitions;
     }
 
     public static Plugin createPlugin(String type, V2FileSystemObject fsObject, JsonObject contentsDefinition) {
-        L.i("Build plugin for " + fsObject.getName() + ": " + type);
+        fsObject.logger.info("Build plugin for " + fsObject.getName() + ": " + type);
         PluginFactory<?, ?> factory = fsObject.getTemplate().getPluginFactoryRepository().getPlugin(type);
         return factory.parse(fsObject, contentsDefinition);
     }
@@ -181,12 +186,12 @@ public abstract class V2FileSystemObject {
     public static List<Plugin> parsePlugins(V2FileSystemObject fsObject, JsonObject contentsDefinition) {
         ArrayList<Plugin> plugins = new ArrayList<>();
         if (!contentsDefinition.has("plugins")) {
-            L.i("No plugins specified on " + fsObject.getName());
+            fsObject.logger.info("No plugins specified on " + fsObject.getName());
             return plugins;
         }
         JsonElement pluginElement = contentsDefinition.get("plugins");
         if (pluginElement.isJsonPrimitive()) {
-            L.i("Found plugin on " + fsObject.getName() + ": " + pluginElement.getAsString());
+            fsObject.logger.info("Found plugin on " + fsObject.getName() + ": " + pluginElement.getAsString());
             plugins.add(
                     createPlugin(pluginElement.getAsString(), fsObject, contentsDefinition)
             );
@@ -194,7 +199,7 @@ public abstract class V2FileSystemObject {
             JsonArray pluginsArray = assertJsonArray("plugins", pluginElement);
             for (JsonElement jsonElement : pluginsArray) {
                 Assert.isTrue(jsonElement.isJsonPrimitive(), "Plugin list must be a list of JSON primitives and must be strings!");
-                L.i("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
+                fsObject.logger.info("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
                 plugins.add(
                         createPlugin(jsonElement.getAsString(), fsObject, contentsDefinition)
                 );

@@ -2,6 +2,7 @@ package tk.jasoryeh.conductor.downloaders;
 
 import lombok.Getter;
 import lombok.Setter;
+import tk.jasoryeh.conductor.log.Logger;
 
 import java.io.File;
 
@@ -11,12 +12,15 @@ import java.io.File;
 public abstract class Downloader {
 
     @Getter
+    protected Logger logger;
+    @Getter
     protected File destination;
     @Getter
     @Setter
     protected boolean overwrite;
 
     public Downloader(File downloadTo, boolean overwrite) {
+        this.logger = new Logger(this.getClass().getSimpleName());
         this.destination = downloadTo;
         if (this.overwrite && this.destination.exists()) {
             if (!this.destination.delete()) {

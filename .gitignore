@@ -4,3 +4,4 @@ hs_err*
 *.log
 target
 dependency-reduced-pom.xml
+livetest

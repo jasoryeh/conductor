@@ -3,7 +3,7 @@ package tk.jasoryeh.conductor;
 import com.google.gson.*;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.plugins.PluginFactory;
 import tk.jasoryeh.conductor.plugins.PluginFactoryRepository;
 import tk.jasoryeh.conductor.secrets.V2Secret;
@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
 public class V2Template {
     public static final String TEMPORARY_DIR = "launcher_tmp";
 
+    @Getter
+    private final Logger logger;
     private final Conductor conductor;
     private final JsonObject rootObject;
 
@@ -38,23 +40,24 @@ public class V2Template {
     public List<V2Template> includes;
 
     public V2Template(Conductor conductor, JsonObject rootObject) {
+        this.logger = new Logger(V2Template.class.getSimpleName());
         this.conductor = conductor;
         this.rootObject = rootObject;
 
         this.parseMetadata();
-        L.i("Template found: " + this.name + " (" + this.version + ")" + " -> " + this.description);
+        this.logger.info("Template found: " + this.name + " (" + this.version + ")" + " -> " + this.description);
         this.workingDirectory = Utility.getCurrentDirectory();
         this.temporaryDirectory = new File(this.workingDirectory, TEMPORARY_DIR);
         this.pluginFactoryRepository = new PluginFactoryRepository(this);
         this.parseVariables();
-        L.i("Parsed " + this.variables.size() + " template variables.");
+        this.logger.info("Parsed " + this.variables.size() + " template variables.");
         Map<String, String> sysEnv = System.getenv();
         long countConflicting = sysEnv.entrySet().stream().filter(e -> this.secretMap.containsKey(e.getKey())).count();
-        L.i("An additional " + sysEnv.size() + " environment variables were also found, " + countConflicting + " conflicting.");
+        this.logger.info("An additional " + sysEnv.size() + " environment variables were also found, " + countConflicting + " conflicting.");
         this.parseSecrets();
-        L.i("Parsed " + this.secretMap.size() + " template secrets.");
+        this.logger.info("Parsed " + this.secretMap.size() + " template secrets.");
         this.includes = this.getIncludes();
-        L.i("Parsed " + this.includes.size() + " template inclusions to merge.");
+        this.logger.info("Parsed " + this.includes.size() + " template inclusions to merge.");
 
         Assert.isTrue(
                 this.workingDirectory.exists() || this.workingDirectory.mkdirs(),
@@ -72,7 +75,7 @@ public class V2Template {
                 "The configuration's metadata is not set!");
         JsonObject conductorMetaElement = conductorMetadataObject.getAsJsonObject();
         if (!conductorMetaElement.has("includes")) {
-            L.i("Includes are not defined, assuming none are used.");
+            this.logger.info("Includes are not defined, assuming none are used.");
             return includeURLs;
         }
         JsonElement includesElement = conductorMetaElement.get("includes");
@@ -80,7 +83,7 @@ public class V2Template {
         JsonParser jsonParser = new JsonParser();
         for (JsonElement inclElement : includesElement.getAsJsonArray()) {
             String includeURLString = inclElement.getAsString();
-            L.i("Discovered include for merge: " + includeURLString);
+            this.logger.info("Discovered include for merge: " + includeURLString);
             URL includeURL = new URL(
                     this.resolveVariables(includeURLString));
             JsonElement parse = jsonParser.parse(
@@ -113,7 +116,7 @@ public class V2Template {
         if (object.has("variables")) {
             JsonObject vars = object.get("variables").getAsJsonObject();
             for (String varKey : vars.keySet()) {
-                L.i("Found variable definition: " + varKey);
+                this.logger.info("Found variable definition: " + varKey);
                 String varValue = vars.get(varKey).getAsString();
                 this.variables.put(varKey, varValue);
             }
@@ -129,7 +132,7 @@ public class V2Template {
         if (object.has("secrets")) {
             JsonObject secrets = object.get("secrets").getAsJsonObject();
             for (String secretKey : secrets.keySet()) {
-                L.i("Found secret definition: " + secretKey);
+                this.logger.info("Found secret definition: " + secretKey);
                 JsonObject secret = secrets.get(secretKey).getAsJsonObject();
                 String secretType = secret.get("type").getAsString();
                 PluginFactory<?, ?> pluginFactory = this.getPluginFactoryRepository().getPlugin(secretType);
@@ -139,16 +142,16 @@ public class V2Template {
         }
     }
 
-    private static void mergeTree(JsonObject parentTree, JsonObject subTree) {
+    private void mergeTree(JsonObject parentTree, JsonObject subTree) {
         for (Map.Entry<String, JsonElement> entry : subTree.entrySet()) {
             if (!parentTree.has(entry.getKey())) {
-                L.i("Merging new tree entry from subtree with key: " + entry.getKey());
+                this.logger.info("Merging new tree entry from subtree with key: " + entry.getKey());
                 parentTree.add(entry.getKey(), entry.getValue());
             } else {
                 JsonObject parentTreeValue = parentTree.get(entry.getKey()).getAsJsonObject();
                 JsonObject subTreeValue = entry.getValue().getAsJsonObject();
                 if (subTreeValue.has("final")) {
-                    L.i("Overwriting tree entry from subtree with key: " + entry.getKey());
+                    this.logger.info("Overwriting tree entry from subtree with key: " + entry.getKey());
                     parentTree.remove(entry.getKey());
                     parentTree.add(entry.getKey(), entry.getValue());
                     continue;
@@ -156,21 +159,21 @@ public class V2Template {
                 String parentType = V2FileSystemObject.getType(parentTreeValue);
                 String subType = V2FileSystemObject.getType(subTreeValue);
                 if (parentType.equalsIgnoreCase("folder") && parentType.equalsIgnoreCase(subType)) {
-                    L.i("Merging folder tree with subtree at key: " + entry.getKey());
-                    mergeTree(parentTreeValue.get("content").getAsJsonObject(),
+                    this.logger.info("Merging folder tree with subtree at key: " + entry.getKey());
+                    this.mergeTree(parentTreeValue.get("content").getAsJsonObject(),
                             subTreeValue.get("content").getAsJsonObject());
                     continue;
                 }
-                L.w("Unable to merge " + entry.getKey() + " in include to final tree. (The trees are incompatible for merge)");
+                this.logger.warn("Unable to merge " + entry.getKey() + " in include to final tree. (The trees are incompatible for merge)");
             }
         }
     }
 
     private JsonObject getFinalizedFilesystemDefinition() {
-        L.i("Merging finalized file system on " + this.name + "...");
+        this.logger.info("Merging finalized file system on " + this.name + "...");
         JsonObject rootObject = this.rootObject.get("filesystem").getAsJsonObject().deepCopy();
         for (V2Template include : this.includes) {
-            L.i("  ..." + this.name + " + " + include.name);
+            this.logger.info("  ..." + this.name + " + " + include.name);
 
             // merge unset secrets and variables
             for (Map.Entry<String, String> varEntry : include.variables.entrySet()) {
@@ -186,7 +189,7 @@ public class V2Template {
 
             // merge with the includes merged finalized definition
             JsonObject subObject = include.getFinalizedFilesystemDefinition();
-            mergeTree(rootObject, subObject);
+            this.mergeTree(rootObject, subObject);
         }
         return rootObject;
     }
@@ -198,8 +201,8 @@ public class V2Template {
     public List<V2FileSystemObject> buildFilesystemModel() {
         JsonObject fsDefinition = Objects.requireNonNull(this.getFinalizedFilesystemDefinition());
 
-        L.d("Finalized filesystem template model:");
-        L.d(Utility.PRETTY_PRINTER.toJson(fsDefinition));
+        this.logger.debug("Finalized filesystem template model:");
+        this.logger.debug(Utility.PRETTY_PRINTER.toJson(fsDefinition));
 
         return V2FileSystemObject.buildFilesystemModel(this, fsDefinition);
     }

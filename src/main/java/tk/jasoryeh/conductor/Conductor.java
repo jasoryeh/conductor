@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import tk.jasoryeh.conductor.config.LauncherConfiguration;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
 
@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Objects;
 
 public class Conductor extends Boot {
+    private static Logger qsLog = new Logger(Conductor.class.getSimpleName() + " Boot");
+
+    private Logger logger = new Logger(Conductor.class.getSimpleName());
+
     @Getter
     @Setter
     private static Conductor instance;
@@ -26,14 +30,14 @@ public class Conductor extends Boot {
      * With the creation of this, we auto call onEnable and start the process
      */
     Conductor() {
-        L.d("<< --- < " + TerminalColors.GREEN_BOLD.wrap("Conductor") + " > --- >>");
+        this.logger.debug("<< --- < " + TerminalColors.GREEN_BOLD.wrap("Conductor") + " > --- >>");
         String argumentFull = String.join(" ", Utility.getJVMArguments());
-        L.d("Arguments - " + (argumentFull.length() == 0 ? "(empty)" : argumentFull));
-        L.d("Current Directory - " + Utility.getCurrentDirectory());
-        L.d("File separator - " + File.separator);
-        L.d("File path separator - " + File.pathSeparator);
-        L.d("Running in - " + System.getProperty("user.dir"));
-        L.d("Temporary storage in - " + new File(Utility.getCurrentDirectory(), V2Template.TEMPORARY_DIR).getAbsolutePath());
+        this.logger.debug("Arguments - " + (argumentFull.length() == 0 ? "(empty)" : argumentFull));
+        this.logger.debug("Current Directory - " + Utility.getCurrentDirectory());
+        this.logger.debug("File separator - " + File.separator);
+        this.logger.debug("File path separator - " + File.pathSeparator);
+        this.logger.debug("Running in - " + System.getProperty("user.dir"));
+        this.logger.debug("Temporary storage in - " + new File(Utility.getCurrentDirectory(), V2Template.TEMPORARY_DIR).getAbsolutePath());
     }
 
     @Override
@@ -43,23 +47,23 @@ public class Conductor extends Boot {
         this.templateConfig = new V2Template(this, rawTemplate);
 
         List<V2FileSystemObject> fsObjs = this.templateConfig.buildFilesystemModel();
-        L.i("Found " + fsObjs.size() + " root object definitions.");
-        L.i("Parsing object definitions...");
+        this.logger.info("Found " + fsObjs.size() + " root object definitions.");
+        this.logger.info("Parsing object definitions...");
         fsObjs.forEach(V2FileSystemObject::parse);
-        L.i("Tree:");
-        displayTree(fsObjs);
-        L.i("Preparing resources....");
+        this.logger.info("Tree:");
+        this.displayTree(fsObjs);
+        this.logger.info("Preparing resources....");
         // todo: asynchronously prepare resources?
         fsObjs.forEach(V2FileSystemObject::prepare);
-        L.i("Cleaning up work directory...");
+        this.logger.info("Cleaning up work directory...");
         fsObjs.forEach(V2FileSystemObject::delete);
-        L.i("Applying changes to work directory...");
+        this.logger.info("Applying changes to work directory...");
         fsObjs.forEach(V2FileSystemObject::apply);
-        L.i("Changes applied!");
+        this.logger.info("Changes applied!");
     }
 
     public void onDisable() {
-        L.i("Conductor shut down.");
+        this.logger.info("Conductor shut down.");
     }
 
     public static void shutdown(boolean err) {
@@ -70,7 +74,7 @@ public class Conductor extends Boot {
         }
 
         System.exit(err ? 1 : 0);
-        L.i("bye.");
+        qsLog.info("bye.");
     }
 
     private static String repeat(char c, int n) {
@@ -88,11 +92,11 @@ public class Conductor extends Boot {
         return b.toString();
     }
 
-    public static void displayTree(List<V2FileSystemObject> fsList) {
+    public void displayTree(List<V2FileSystemObject> fsList) {
         for (V2FileSystemObject v2FileSystemObject : fsList) {
-            L.i(repeat('-', v2FileSystemObject.depth()) + " "  + v2FileSystemObject.getName());
+            this.logger.info(repeat('-', v2FileSystemObject.depth()) + " "  + v2FileSystemObject.getName());
             if (v2FileSystemObject instanceof  V2FolderObject) {
-                displayTree(((V2FolderObject) v2FileSystemObject).children);
+                this.displayTree(((V2FolderObject) v2FileSystemObject).children);
             }
         }
     }
@@ -105,7 +109,7 @@ public class Conductor extends Boot {
      * To be called to skip updates
      */
     public static void quickStart(ClassLoader cl) {
-        L.i("Quick starting conductor | "
+        qsLog.info("Quick starting conductor | "
                 + ConductorManifest.conductorVersion() + " | " + ConductorManifest.conductorBootClass());
         parentLoader = cl;
 
@@ -117,11 +121,17 @@ public class Conductor extends Boot {
         Conductor conductor = new Conductor();
         Conductor.setInstance(conductor);
 
-        L.i("Booting Conductor...");
-        conductor.onEnable();
+        qsLog.info("Booting Conductor...");
+        try {
+            conductor.onEnable();
+        } catch(Exception e) {
+            e.printStackTrace();
+            qsLog.error("Failed to boot conductor successfully. Details: " + e.getMessage());
+            return;
+        }
 
         // Finish, clean up
-        L.i("Disabling Conductor...");
+        qsLog.info("Disabling Conductor...");
         conductor.onDisable();
     }
 }

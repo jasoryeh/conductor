@@ -1,7 +1,6 @@
 package tk.jasoryeh.conductor;
 
 import com.google.gson.JsonObject;
-import tk.jasoryeh.conductor.log.L;
 import tk.jasoryeh.conductor.plugins.Plugin;
 import tk.jasoryeh.conductor.util.Assert;
 import tk.jasoryeh.conductor.util.FileUtils;
@@ -28,13 +27,13 @@ public class V2FolderObject extends V2FileSystemObject {
 
     @Override
     public void parse() {
-        L.d("Parsing " + this.name);
+        this.logger.debug("Parsing " + this.name);
         JsonObject contentDefinition = assertJsonObject("content",
                 V2FileSystemObject.getContentElement(this.definition));
         this.plugins.addAll(V2FileObject.parsePlugins(this, contentDefinition));
         this.children = V2FileSystemObject.buildFilesystemModel(this,
                 contentDefinition);
-        L.d("    ...and children");
+        this.logger.debug("    ...and children");
         for (V2FileSystemObject child : this.children) {
             // run parse on children too.
             child.parse();

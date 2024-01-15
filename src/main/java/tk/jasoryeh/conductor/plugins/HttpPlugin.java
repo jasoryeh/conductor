@@ -2,7 +2,7 @@ package tk.jasoryeh.conductor.plugins;
 
 import tk.jasoryeh.conductor.V2FileSystemObject;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
-import tk.jasoryeh.conductor.log.L;
+import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.secrets.HttpPluginSecret;
 import tk.jasoryeh.conductor.util.Assert;
 
@@ -21,7 +21,7 @@ public class HttpPlugin extends Plugin {
 
     @Override
     public void prepare() {
-        L.i("HttpPlugin is attempting to retrieve " + this.url);
+        this.logger.info("HttpPlugin is attempting to retrieve " + this.url);
         File tempFile = this.getFsObject().getTemporary();
         File parentFile = tempFile.getParentFile();
         Assert.isTrue(parentFile.exists() || parentFile.mkdirs(), "mkdirs - http");
@@ -32,7 +32,7 @@ public class HttpPlugin extends Plugin {
                 this.secrets
         );
         downloader.download();
-        L.i("-");
+        this.logger.info("-");
     }
 
     @Override
