@@ -13,7 +13,7 @@ public class FileUtils {
     protected static void say(String prefix, Object... msg) {
         logger.child(prefix).info(msg);
     }
-    private static final String FILE_DELETE_LOG_PREFIX = "[FS|Deletion]";
+    private static final String FILE_DELETE_LOG_PREFIX = "FS|Deletion";
 
     @SneakyThrows
     public static boolean delete(File f) {
