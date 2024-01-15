@@ -6,6 +6,7 @@ import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
 import tk.jasoryeh.conductor.log.Logger;
+import tk.jasoryeh.conductor.scheduler.Threads;
 import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
@@ -89,7 +90,12 @@ public class ConductorUpdater {
         log("Downloading complete.");
         log(String.format("Starting updated conductor... [%s]", conductorFile.getAbsolutePath()));
         // Start
-        return startUpdatedConductor();
+        boolean updatedStartStatus = startUpdatedConductor();
+        if (!updatedStartStatus) {
+            logger.error("Unable to start the downloaded conductor version! Falling back to the current version in 5 seconds...");
+            Threads.sleep(5000);
+        }
+        return updatedStartStatus;
     }
 
     @SneakyThrows
@@ -111,7 +117,7 @@ public class ConductorUpdater {
         );
 
         if(conductorClass == null) {
-            Logger.getLogger().error("Invalid jar file, falling back!");
+            logger.error("Invalid jar file, falling back!");
             return false;
         }
 
@@ -121,10 +127,13 @@ public class ConductorUpdater {
             return true;
         } catch(Exception e) {
             try {
+                logger.warn("Failed to invoke new quickStart on " + conductorClass.getCanonicalName() + " falling back to old verison...");
                 conductorClass.getMethod("quickStart").invoke(null);
                 return true;
             } catch(Exception er) {
+                logger.error("Failed to invoke new quickStart on " + conductorClass.getCanonicalName());
                 e.printStackTrace();
+                logger.error("Failed to invoke old quickStart on " + conductorClass.getCanonicalName());
                 er.printStackTrace();
                 return false;
             }
