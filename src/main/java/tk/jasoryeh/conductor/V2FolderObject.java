@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @V2FileSystemObjectTypeKey("folder")
 public class V2FolderObject extends V2FileSystemObject {
@@ -50,7 +51,7 @@ public class V2FolderObject extends V2FileSystemObject {
         Assert.isTrue(temporary.exists() || temporary.mkdirs(), String.format("Creation of temp workdir at %s failed!", temporary.getAbsolutePath()));
 
         ExecutorService threadPool = Conductor.getInstance().getThreadPool();
-        CountDownLatch latch = new CountDownLatch(this.children.size() - 1);
+        CountDownLatch latch = new CountDownLatch(this.children.size());
         for (V2FileSystemObject child : this.children) {
             threadPool.submit(() -> {
                 this.logger.debug("Submitted task run " + child.getName());
@@ -60,9 +61,13 @@ public class V2FolderObject extends V2FileSystemObject {
             });
             this.logger.debug("Submitted task " + child.getName());
         }
-        this.logger.debug("Submitted tasks wait latch left: " + latch.getCount());
-        latch.await();
-        this.logger.debug("Submitted tasks end wait latch");
+
+        boolean complete = false;
+        while (!complete) {
+            this.logger.debug("Submitted tasks wait latch left: " + latch.getCount() + " on " + this.getName() + "'s sub-files.");
+            complete = latch.await(5, TimeUnit.SECONDS);
+            this.logger.debug("Submitted tasks end wait latch");
+        }
 
         for (Plugin plugin : this.plugins) {
             plugin.prepare();
