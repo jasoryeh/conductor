@@ -1,5 +1,7 @@
 package tk.jasoryeh.conductor.log;
 
+import lombok.Getter;
+import lombok.Setter;
 import tk.jasoryeh.conductor.util.TerminalColors;
 
 import java.time.ZonedDateTime;
@@ -13,6 +15,10 @@ public class Logger {
     private Logger parent = null;
     private String name;
 
+    @Getter
+    @Setter
+    private static boolean enableDebugLogs = true;
+
     public static Logger getLogger() {
         instance = (instance == null) ? new Logger() : instance;
         return instance;
@@ -22,7 +28,7 @@ public class Logger {
      * Unnecessary Instance-based logger
      */
     public Logger() {
-        this(null, null);
+        this(null, (String) null);
     }
 
     public Logger(String name) {
@@ -32,6 +38,14 @@ public class Logger {
     public Logger(Logger parent, String name) {
         this.parent = parent;
         this.name = name;
+    }
+
+    public Logger(Class<?> clasz) {
+        this(clasz.getSimpleName());
+    }
+
+    public Logger(Logger parent, Class<?> clasz) {
+        this(clasz.getSimpleName());
     }
 
     public Logger child(String name) {
@@ -65,7 +79,7 @@ public class Logger {
     }
 
     public void debug(Object... objects) {
-        say(getMessage(DEBUGPREFIX, objects));
+        if (enableDebugLogs) say(getMessage(DEBUGPREFIX, objects));
     }
 
     /**

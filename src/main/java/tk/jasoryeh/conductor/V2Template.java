@@ -37,28 +37,36 @@ public class V2Template {
     public String name;
     public String description;
     public Map<String, V2Secret> secretMap = new HashMap<>();
-    public Map<String, String> variables = new HashMap<>();
+    public Map<String, String> templateVariables = new HashMap<>();
     public List<V2Template> includes;
 
     public V2Template(Conductor conductor, JsonObject rootObject) {
         this.logger = new Logger(V2Template.class.getSimpleName());
         this.conductor = conductor;
-        this.rootObject = rootObject;
 
-        this.parseMetadata();
-        this.logger.info("Template found: " + this.name + " (" + this.version + ")" + " -> " + this.description);
         this.workingDirectory = Utility.getCurrentDirectory();
         this.temporaryDirectory = new File(this.workingDirectory, TEMPORARY_DIR);
+
+        this.rootObject = rootObject;
+
+        this.parseMetadata(); // parse name, version, description
+        this.logger.info("Template found: " + this.name + " (" + this.version + ")" + " -> " + this.description);
         this.pluginFactoryRepository = new PluginFactoryRepository(this);
-        this.parseVariables();
-        this.logger.info("Parsed " + this.variables.size() + " template variables.");
-        Map<String, String> sysEnv = System.getenv();
-        long countConflicting = sysEnv.entrySet().stream().filter(e -> this.secretMap.containsKey(e.getKey())).count();
-        this.logger.info("An additional " + sysEnv.size() + " environment variables were also found, " + countConflicting + " conflicting.");
-        this.parseSecrets();
-        this.logger.info("Parsed " + this.secretMap.size() + " template secrets.");
+
+        this.parseTemplateVariables(); // parse the template variables
+        this.parseSecrets(); // parse secrets in the template
+
+        Map<String, String> sysEnv = this.conductor.getEnvironmentConfiguration()
+                .getEnvironment();
+        long countConflicting = sysEnv
+                .entrySet()
+                .stream()
+                .filter(e -> this.secretMap.containsKey(e.getKey()))
+                .count();
+        this.logger.info("An additional " + sysEnv.size() + " environment variables were also found, "
+                + countConflicting + " are conflicting, these WILL override the template variables.");
+
         this.includes = this.getIncludes();
-        this.logger.info("Parsed " + this.includes.size() + " template inclusions to merge.");
 
         Assert.isTrue(
                 this.workingDirectory.exists() || this.workingDirectory.mkdirs(),
@@ -82,6 +90,7 @@ public class V2Template {
         JsonElement includesElement = conductorMetaElement.get("includes");
         Assert.isTrue(includesElement.isJsonArray(), "'includes' must be an array.");
         JsonParser jsonParser = new JsonParser();
+        int includesParsed = 0;
         for (JsonElement inclElement : includesElement.getAsJsonArray()) {
             String includeURLString = inclElement.getAsString();
             this.logger.info("Discovered include for merge: " + includeURLString);
@@ -93,7 +102,9 @@ public class V2Template {
             includeURLs.add(
                     new V2Template(this.conductor,
                             V2FileSystemObject.assertJsonObject("include @ " + includeURL, parse)));
+            includesParsed++;
         }
+        this.logger.info("Found and parsed " + includesParsed + " additional includes from template to merge.");
         return includeURLs;
     }
 
@@ -108,20 +119,23 @@ public class V2Template {
         this.description = object.has("description") ? object.get("description").getAsString() : "(no description)";
     }
 
-    public void parseVariables() {
+    public void parseTemplateVariables() {
         JsonElement conductorMetadataObject = Objects.requireNonNull(
                 this.rootObject.get("_conductor"),
                 "The configuration's metadata is not set!");
         JsonObject object = conductorMetadataObject.getAsJsonObject();
         // vars
+        int parsed = 0;
         if (object.has("variables")) {
             JsonObject vars = object.get("variables").getAsJsonObject();
             for (String varKey : vars.keySet()) {
                 this.logger.info("Found variable definition: " + varKey);
                 String varValue = vars.get(varKey).getAsString();
-                this.variables.put(varKey, varValue);
+                this.templateVariables.put(varKey, varValue);
+                parsed++;
             }
         }
+        this.logger.info("Parsed " + parsed + " variables from template.");
     }
 
     public void parseSecrets() {
@@ -130,6 +144,7 @@ public class V2Template {
                 "The configuration's metadata is not set!");
         JsonObject object = conductorMetadataObject.getAsJsonObject();
         // secrets
+        int secretsCount = 0;
         if (object.has("secrets")) {
             JsonObject secrets = object.get("secrets").getAsJsonObject();
             for (String secretKey : secrets.keySet()) {
@@ -141,6 +156,7 @@ public class V2Template {
                 this.secretMap.put(secretKey, secretResult);
             }
         }
+        this.logger.info("Parsed " + secretsCount + " secrets from template.");
     }
 
     private void mergeTree(JsonObject parentTree, JsonObject subTree) {
@@ -177,9 +193,9 @@ public class V2Template {
             this.logger.info("  ..." + this.name + " + " + include.name);
 
             // merge unset secrets and variables
-            for (Map.Entry<String, String> varEntry : include.variables.entrySet()) {
-                if (!this.variables.containsKey(varEntry.getKey())) {
-                    this.variables.put(varEntry.getKey(), varEntry.getValue());
+            for (Map.Entry<String, String> varEntry : include.templateVariables.entrySet()) {
+                if (!this.templateVariables.containsKey(varEntry.getKey())) {
+                    this.templateVariables.put(varEntry.getKey(), varEntry.getValue());
                 }
             }
             for (Map.Entry<String, V2Secret> secretEntry : include.secretMap.entrySet()) {
@@ -217,11 +233,13 @@ public class V2Template {
 
     public String resolveVariables(final String inText) {
         String temp = inText.replaceAll(Pattern.quote("{NEWLINE}"), System.lineSeparator());
-        for (Map.Entry<String, String> varEntry : System.getenv().entrySet()) {
+        for (Map.Entry<String, String> varEntry : this.conductor.getEnvironmentConfiguration()
+                .getEnvironment()
+                .entrySet()) { //TODO: Manage this
             temp = temp.replaceAll(Pattern.quote(String.format("{{$%s$}}", varEntry.getKey())), varEntry.getValue())
                     .replaceAll(Pattern.quote(String.format("{{%s}}", varEntry.getKey())), varEntry.getValue());
         }
-        for (Map.Entry<String, String> varEntry : this.variables.entrySet()) {
+        for (Map.Entry<String, String> varEntry : this.templateVariables.entrySet()) {
             temp = temp.replaceAll(Pattern.quote(String.format("{{!%s!}}", varEntry.getKey())), varEntry.getValue())
                     .replaceAll(Pattern.quote(String.format("{{%s}}", varEntry.getKey())), varEntry.getValue());
         }

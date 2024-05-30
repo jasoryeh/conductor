@@ -23,7 +23,7 @@ public class PluginFactoryRepository {
      */
     public void register(PluginFactory<?, ?> factory) {
         factories.put(factory.name(), factory);
-        this.logger.info("Plugin loaded: " + factory.name());
+        this.logger.debug("Plugin loaded: " + factory.name());
     }
 
     /**

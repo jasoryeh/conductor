@@ -1,7 +1,8 @@
 package tk.jasoryeh.conductor;
 
 import lombok.SneakyThrows;
-import tk.jasoryeh.conductor.config.LauncherConfiguration;
+import tk.jasoryeh.conductor.config.ConductorEnvironmentConfiguration;
+import tk.jasoryeh.conductor.config.ConductorLauncherConfiguration;
 import tk.jasoryeh.conductor.downloaders.Downloader;
 import tk.jasoryeh.conductor.downloaders.JenkinsDownloader;
 import tk.jasoryeh.conductor.downloaders.URLDownloader;
@@ -45,14 +46,18 @@ public class ConductorUpdater {
     public static boolean update() {
         log("Attempting to retrieve latest update of conductor!");
 
-        LauncherConfiguration launchConfig = LauncherConfiguration.get();
-        LauncherConfiguration.UpdateConfig self = launchConfig.getUpdateConfig();
+        ConductorEnvironmentConfiguration environmentConfiguration = new ConductorEnvironmentConfiguration();
+        ConductorLauncherConfiguration launchConfig = new ConductorLauncherConfiguration(environmentConfiguration,
+                ConductorLauncherConfiguration.getPropertiesOfFile(
+                        ConductorLauncherConfiguration.getLauncherPropertiesFile()
+                ));
+        ConductorLauncherConfiguration.UpdateConfig self = launchConfig.getUpdateConfig();
         if(!self.isUpdate()) {
             log("Not updating...");
             return false;
         }
 
-        LauncherConfiguration.UpdateConfig.UpdateConfigSource from = self.getSource();
+        ConductorLauncherConfiguration.UpdateConfig.UpdateConfigSource from = self.getSource();
         String data = self.getData();
         log("Updating from " + from.toString() + " data: " + data);
         Downloader conductorDownloader;

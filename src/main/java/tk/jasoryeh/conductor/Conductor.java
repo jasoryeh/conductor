@@ -4,16 +4,17 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
-import tk.jasoryeh.conductor.config.LauncherConfiguration;
+import tk.jasoryeh.conductor.config.ConductorEnvironmentConfiguration;
+import tk.jasoryeh.conductor.config.ConductorLauncherConfiguration;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Conductor extends Boot {
     private static Logger qsLog = new Logger(Conductor.class.getSimpleName() + " Boot");
@@ -27,11 +28,13 @@ public class Conductor extends Boot {
     @Getter
     protected ForkJoinPool threadPool;
     @Getter
-    private LauncherConfiguration launcherConfig;
+    private ConductorLauncherConfiguration launcherConfig;
+    @Getter
+    private ConductorEnvironmentConfiguration environmentConfiguration;
     @Getter
     private V2Template templateConfig;
 
-    private List<V2FileSystemObject> layout = new ArrayList<>();
+    private List<V2FileSystemObject> layout;
 
     /**
      * With the creation of this, we auto call onEnable and start the process
@@ -50,11 +53,23 @@ public class Conductor extends Boot {
     @SneakyThrows
     public void execute() {
         this.logger.info("Preparing resources....");
-        this.layout.forEach(obj -> this.threadPool.execute(obj::prepare));
+        AtomicBoolean failures = new AtomicBoolean(false);
+        this.layout.forEach(obj -> this.threadPool.execute(() -> {
+            try {
+                obj.prepare();
+            } catch(Exception e) {
+                this.logger.info("Failure in executor service: " + e.getMessage());
+                e.printStackTrace();
+                failures.set(true);
+            }
+        }));
         while (!this.threadPool.awaitQuiescence(5, TimeUnit.SECONDS)) {
             this.logger.info("Waiting for finishing of tasks: "
                     + this.threadPool.getQueuedTaskCount() + " in line "
                     + this.threadPool.getActiveThreadCount() + " active threads");
+            if (failures.get()) {
+                throw new RuntimeException("A failure occurred in resource preparation.");
+            }
         }
         //this.layout.forEach(V2FileSystemObject::prepare);
 
@@ -69,8 +84,14 @@ public class Conductor extends Boot {
 
     @Override
     public void onEnable() {
-        this.launcherConfig = LauncherConfiguration.get();
-        JsonObject rawTemplate = Objects.requireNonNull(this.launcherConfig.parseConfig());
+        this.environmentConfiguration = new ConductorEnvironmentConfiguration();
+        this.launcherConfig = new ConductorLauncherConfiguration(this.environmentConfiguration,
+                ConductorLauncherConfiguration.getPropertiesOfFile(
+                        ConductorLauncherConfiguration.getLauncherPropertiesFile()
+                ));
+
+        String templateString = Objects.requireNonNull(this.launcherConfig.loadTemplateFile());
+        JsonObject rawTemplate = this.launcherConfig.parseTemplateFile(templateString);
         this.templateConfig = new V2Template(this, rawTemplate);
         this.threadPool = new ForkJoinPool(this.launcherConfig.getPoolSize());
 
@@ -80,6 +101,7 @@ public class Conductor extends Boot {
         this.layout.forEach(V2FileSystemObject::parse);
         this.logger.info("Tree:");
         this.displayTree(this.layout);
+
         this.logger.info("Executing...");
         this.execute();
     }

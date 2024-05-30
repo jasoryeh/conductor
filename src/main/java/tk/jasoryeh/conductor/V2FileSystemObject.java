@@ -189,7 +189,7 @@ public abstract class V2FileSystemObject {
     public static List<Plugin> parsePlugins(V2FileSystemObject fsObject, JsonObject contentsDefinition) {
         ArrayList<Plugin> plugins = new ArrayList<>();
         if (!contentsDefinition.has("plugins")) {
-            fsObject.logger.info("No plugins specified on " + fsObject.getName());
+            fsObject.logger.debug("No plugins specified on " + fsObject.getName());
             return plugins;
         }
         JsonElement pluginElement = contentsDefinition.get("plugins");
