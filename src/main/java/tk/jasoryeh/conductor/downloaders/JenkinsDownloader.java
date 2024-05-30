@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Retrieve files from the Jenkins server specified
@@ -63,14 +64,24 @@ public class JenkinsDownloader extends Downloader {
                 details.getLastSuccessfulBuild() :
                 details.getBuildByNumber(this.number);
         List<Artifact> artifacts =  build.details().getArtifacts();
-        this.log(String.format("Found %d artifacts for job %s", artifacts.size(), this.job));
+        this.logger.info(String.format("Found %d artifacts for job %s", artifacts.size(), this.job));
 
-        this.log("Looking for artifact: " + this.artifactName);
+        boolean shouldDoRegexMatch = this.artifactName.startsWith("regex:");
+        this.logger.info("Looking for artifact: " + this.artifactName + ", " +
+                (shouldDoRegexMatch ? "not using" : "using") + " RegEx match");
         for (Artifact artifact : artifacts) {
-            this.log(String.format("Found artifact | %s | %s", artifact.getFileName(), artifact.getRelativePath()));
+            this.logger.debug(String.format("Found artifact | %s | %s", artifact.getFileName(), artifact.getRelativePath()));
 
-            if (!artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
-                continue;
+            if (shouldDoRegexMatch) {
+                String regexPattern = this.artifactName.replaceFirst(
+                        Pattern.quote("regex:"), "");
+                if (!artifact.getFileName().matches(regexPattern)) {
+                    continue;
+                }
+            } else {
+                if (!artifact.getFileName().equalsIgnoreCase(this.artifactName)) {
+                    continue;
+                }
             }
 
             this.log(String.format(TerminalColors.GREEN.wrap("Artifact matched") + " | %s | %s |  retrieving from jenkins as | %s",
