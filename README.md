@@ -1,4 +1,5 @@
 # conductor
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/jasoryeh/conductor/maven.yml)
 A way to update, download, remove servers with one jar file. The configuration defines the layout of a program's filesystem by text as well as where to locate resources for each file in the filesystem.
 
 Requires Jave 8 and above (8+)
