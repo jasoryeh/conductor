@@ -18,12 +18,28 @@ public class ConductorEnvironmentConfiguration {
     public ConductorEnvironmentConfiguration() {
         this.logger = new Logger(this.getClass().getSimpleName());
         this.environment = new HashMap<>();
+        this.argumentenv_addAll();
         this.system_addAll();
     }
 
     private void system_addAll() {
         this.logger.debug("Reading system environment into environment.");
         this.environment.putAll(System.getenv());
+    }
+
+    public final static String CONDUCTOR_ENV_ARG = "conductor.env";
+    private void argumentenv_addAll() {
+        String fileEnv = System.getProperty(CONDUCTOR_ENV_ARG, "");
+        if (fileEnv.isEmpty()) {
+            return;
+        }
+        this.logger.info("Reading environments from: " + fileEnv);
+        File file = new File(fileEnv);
+        if (!file.exists()) {
+            this.logger.info("...environment specified by environment is not found!");
+        }
+        this.file_addAll(file);
+        this.logger.info("Environments from " + file.getAbsolutePath() + " loaded");
     }
 
     @SneakyThrows
@@ -37,9 +53,9 @@ public class ConductorEnvironmentConfiguration {
         List<String> lines = Files.readAllLines(file.toPath());
 
         for (String line : lines) {
-            if (!line.contains("=")) {
+            if (!line.contains("=") || line.startsWith("#")) {
                 this.logger.debug("Read " + line + ", no value.");
-                this.environment.put(line, "");
+                //this.environment.put(line, "");
                 continue;
             }
             String[] split = line.split("=", 2);
