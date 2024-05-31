@@ -17,7 +17,7 @@ public class Logger {
 
     @Getter
     @Setter
-    private static boolean enableDebugLogs = true;
+    private static boolean enableDebugLogs = !System.getProperty("conductor.debug", "").isEmpty();
 
     public static Logger getLogger() {
         instance = (instance == null) ? new Logger() : instance;

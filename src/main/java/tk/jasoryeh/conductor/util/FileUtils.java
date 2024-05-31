@@ -11,7 +11,7 @@ public class FileUtils {
     protected static Logger logger = new Logger(FileUtils.class.getSimpleName());
 
     protected static void say(String prefix, Object... msg) {
-        logger.child(prefix).info(msg);
+        logger.child(prefix).debug(msg);
     }
     private static final String FILE_DELETE_LOG_PREFIX = "FS|Deletion";
 

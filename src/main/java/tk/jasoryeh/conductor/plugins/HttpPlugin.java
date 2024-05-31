@@ -32,7 +32,7 @@ public class HttpPlugin extends Plugin {
                 this.secrets
         );
         downloader.download();
-        this.logger.info("-");
+        this.logger.debug("-");
     }
 
     @Override

@@ -61,7 +61,7 @@ public class URLDownloader extends Downloader {
         if(basic) {
             String basicB64 = new String(Base64.encodeBase64(basicAuthString.getBytes(StandardCharsets.UTF_8)));
             huc.setRequestProperty("Authorization", "Basic " + basicB64);
-            this.log("Appended authorizaton header, b64 len:" + basicB64.length());
+            this.logger.debug("Appended authorizaton header, b64 len:" + basicB64.length());
         }
 
         this.headers.entrySet().forEach(entry -> huc.setRequestProperty(entry.getValue(), entry.getKey()));

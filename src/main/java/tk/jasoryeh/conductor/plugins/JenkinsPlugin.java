@@ -20,7 +20,7 @@ public class JenkinsPlugin extends Plugin {
 
     @Override
     public void prepare() {
-        this.logger.info(String.format("Jenkins is attempting to prepare: %s on #%d on %s", this.artifact, this.build, this.job));
+        this.logger.debug(String.format("Jenkins is attempting to prepare: %s on #%d on %s", this.artifact, this.build, this.job));
         JenkinsDownloader jenkinsDownloader = new JenkinsDownloader(
                 this.getFsObject().getTemporary(),
                 true,
@@ -29,7 +29,7 @@ public class JenkinsPlugin extends Plugin {
                 this.build, this.artifact
         );
         jenkinsDownloader.download();
-        this.logger.info("-");
+        this.logger.debug("-");
     }
 
     @Override
