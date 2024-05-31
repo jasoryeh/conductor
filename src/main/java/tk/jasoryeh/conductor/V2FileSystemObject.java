@@ -181,7 +181,7 @@ public abstract class V2FileSystemObject {
     }
 
     public static Plugin createPlugin(String type, V2FileSystemObject fsObject, JsonObject contentsDefinition) {
-        fsObject.logger.info("Build plugin for " + fsObject.getName() + ": " + type);
+        fsObject.logger.debug("Build plugin for " + fsObject.getName() + ": " + type);
         PluginFactory<?, ?> factory = fsObject.getTemplate().getPluginFactoryRepository().getPlugin(type);
         return factory.parse(fsObject, contentsDefinition);
     }
@@ -194,7 +194,7 @@ public abstract class V2FileSystemObject {
         }
         JsonElement pluginElement = contentsDefinition.get("plugins");
         if (pluginElement.isJsonPrimitive()) {
-            fsObject.logger.info("Found plugin on " + fsObject.getName() + ": " + pluginElement.getAsString());
+            fsObject.logger.debug("Found plugin on " + fsObject.getName() + ": " + pluginElement.getAsString());
             plugins.add(
                     createPlugin(pluginElement.getAsString(), fsObject, contentsDefinition)
             );
@@ -202,7 +202,7 @@ public abstract class V2FileSystemObject {
             JsonArray pluginsArray = assertJsonArray("plugins", pluginElement);
             for (JsonElement jsonElement : pluginsArray) {
                 Assert.isTrue(jsonElement.isJsonPrimitive(), "Plugin list must be a list of JSON primitives and must be strings!");
-                fsObject.logger.info("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
+                fsObject.logger.debug("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
                 plugins.add(
                         createPlugin(jsonElement.getAsString(), fsObject, contentsDefinition)
                 );

@@ -13,7 +13,9 @@ import tk.jasoryeh.conductor.util.Utility;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.jar.Manifest;
 
@@ -52,6 +54,7 @@ public class ConductorUpdater {
                         ConductorLauncherConfiguration.getLauncherPropertiesFile()
                 ));
         ConductorLauncherConfiguration.UpdateConfig self = launchConfig.getUpdateConfig();
+
         if(!self.isUpdate()) {
             log("Not updating...");
             return false;
@@ -92,15 +95,8 @@ public class ConductorUpdater {
         }
         log("Downloading updated conductor...");
         conductorDownloader.download();
-        log("Downloading complete.");
-        log(String.format("Starting updated conductor... [%s]", conductorFile.getAbsolutePath()));
-        // Start
-        boolean updatedStartStatus = startUpdatedConductor();
-        if (!updatedStartStatus) {
-            logger.error("Unable to start the downloaded conductor version! Falling back to the current version in 5 seconds...");
-            Threads.sleep(5000);
-        }
-        return updatedStartStatus;
+        log("Downloading completed to " + conductorFile.getAbsolutePath());
+        return true;
     }
 
     @SneakyThrows
@@ -127,22 +123,24 @@ public class ConductorUpdater {
 
         // Run. - also waits for completion.. i think
         logger.info("Starting downloaded conductor version...");
+        List<Exception> errors = new ArrayList<>();
         try {
             conductorClass.getMethod("quickStart", ClassLoader.class).invoke(null, ConductorMain.class.getClassLoader());
             return true;
         } catch(Exception e) {
-            try {
-                logger.warn("Failed to invoke new quickStart on " + conductorClass.getCanonicalName() + " falling back to old verison...");
-                conductorClass.getMethod("quickStart").invoke(null);
-                return true;
-            } catch(Exception er) {
-                logger.error("Failed to invoke new quickStart on " + conductorClass.getCanonicalName());
-                e.printStackTrace();
-                logger.error("Failed to invoke old quickStart on " + conductorClass.getCanonicalName());
-                er.printStackTrace();
-                return false;
-            }
+            logger.warn("Failed to invoke new quickStart on " + conductorClass.getCanonicalName() + " falling back to old verison...");
+            logger.debug(e.getMessage());
+            errors.add(e);
         }
+        try {
+            conductorClass.getMethod("quickStart").invoke(null);
+            return true;
+        } catch(Exception er) {
+            logger.error("Failed to invoke old quickStart on " + conductorClass.getCanonicalName());
+            errors.add(er);
+        }
+        errors.forEach(Exception::printStackTrace);
+        return false;
     }
 
 }

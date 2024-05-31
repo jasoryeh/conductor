@@ -3,7 +3,6 @@ package tk.jasoryeh.conductor;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.util.TerminalColors;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,12 +10,14 @@ import java.util.stream.Collectors;
 public class ConductorMain {
 
     public static Logger logger = new Logger(ConductorMain.class.getSimpleName());
+    public static String[] ARGUMENTS = null;
 
     /**
      * Main class duh.
      * @param args :/
      */
     public static void main(String[] args) {
+        ARGUMENTS = args;
         logger.info(String.format("--> Conductor #main()[@%s] v%s",
                 TerminalColors.YELLOW.wrap(ConductorManifest.conductorBootClass()),
                 TerminalColors.RED.wrap(ConductorManifest.conductorVersion())));
@@ -26,15 +27,37 @@ public class ConductorMain {
         logger.info("<-- Conductor #main() end.");
     }
 
-    public static void init() {
-        // update
-        if (!ConductorUpdater.update()) {
-            logger.info("Could not update! Running the current version of conductor.");
-            Conductor.quickStart(ConductorMain.class.getClassLoader());
-        } else {
-            logger.info("Conductor was updated!");
-            Conductor.shutdown(false);
+    public static void startExistingConductor() {
+        Conductor.quickStart(ConductorMain.class.getClassLoader());
+    }
+
+    public static boolean startUpdatedConductor() {
+        logger.info("Starting updated conductor... ");
+        try {
+            ConductorUpdater.startUpdatedConductor();
+            return true;
+        } catch(Exception e) {
+            logger.debug("Failed to start updated conductor! - " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
+    }
+
+    public static void init() {
+        boolean updateResult = ConductorUpdater.update();
+
+        if (!updateResult) {
+            logger.info("Could not update! Running the current version of conductor.");
+            startExistingConductor();
+            return;
+        }
+
+        logger.info("Attempting to start updated conductor!");
+
+        boolean startUpdatedResult = startUpdatedConductor();
+        logger.info("Updated conductor run: " + (startUpdatedResult ? "success" : "failure"));
+
+        Conductor.shutdown(false);
     }
 
 }
