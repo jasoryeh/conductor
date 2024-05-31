@@ -153,10 +153,7 @@ public class Conductor extends Boot {
     // static
     public static ClassLoader parentLoader;
 
-    /**
-     * To be called to skip updates
-     */
-    public static void quickStart(ClassLoader cl) {
+    public static void quickStart(ClassLoader cl, String[] args) {
         qsLog.info("Quick starting conductor | "
                 + ConductorManifest.conductorVersion() + " | " + ConductorManifest.conductorBootClass());
         parentLoader = cl;
@@ -181,5 +178,12 @@ public class Conductor extends Boot {
         // Finish, clean up
         qsLog.info("Disabling Conductor...");
         conductor.onDisable();
+    }
+
+    /**
+     * To be called to skip updates
+     */
+    public static void quickStart(ClassLoader cl) {
+        quickStart(cl, new String[]{});
     }
 }

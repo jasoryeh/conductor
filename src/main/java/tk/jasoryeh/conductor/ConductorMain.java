@@ -23,18 +23,18 @@ public class ConductorMain {
                 TerminalColors.RED.wrap(ConductorManifest.conductorVersion())));
         List<String> arguments = Arrays.stream(args).collect(Collectors.toList());
         logger.info("--> Executed with arguments: " + arguments);
-        init();
+        init(args);
         logger.info("<-- Conductor #main() end.");
     }
 
-    public static void startExistingConductor() {
-        Conductor.quickStart(ConductorMain.class.getClassLoader());
+    public static void startExistingConductor(String[] args) {
+        Conductor.quickStart(ConductorMain.class.getClassLoader(), args);
     }
 
-    public static boolean startUpdatedConductor() {
+    public static boolean startUpdatedConductor(String[] args) {
         logger.info("Starting updated conductor... ");
         try {
-            ConductorUpdater.startUpdatedConductor();
+            ConductorUpdater.startUpdatedConductor(args);
             return true;
         } catch(Exception e) {
             logger.debug("Failed to start updated conductor! - " + e.getMessage());
@@ -43,18 +43,18 @@ public class ConductorMain {
         }
     }
 
-    public static void init() {
+    public static void init(String[] args) {
         boolean updateResult = ConductorUpdater.update();
 
         if (!updateResult) {
             logger.info("Could not update! Running the current version of conductor.");
-            startExistingConductor();
+            startExistingConductor(args);
             return;
         }
 
         logger.info("Attempting to start updated conductor!");
 
-        boolean startUpdatedResult = startUpdatedConductor();
+        boolean startUpdatedResult = startUpdatedConductor(args);
         logger.info("Updated conductor run: " + (startUpdatedResult ? "success" : "failure"));
 
         Conductor.shutdown(false);

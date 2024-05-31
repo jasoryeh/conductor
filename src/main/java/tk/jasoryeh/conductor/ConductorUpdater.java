@@ -100,7 +100,7 @@ public class ConductorUpdater {
     }
 
     @SneakyThrows
-    public static boolean startUpdatedConductor() {
+    public static boolean startUpdatedConductor(String[] args) {
         // Class loader (quicker, we go to a quick boot method)
         // Doesn't need env params as it uses this jars parameters and we jump straight to
         // the action
@@ -125,10 +125,21 @@ public class ConductorUpdater {
         logger.info("Starting downloaded conductor version...");
         List<Exception> errors = new ArrayList<>();
         try {
-            conductorClass.getMethod("quickStart", ClassLoader.class).invoke(null, ConductorMain.class.getClassLoader());
+            conductorClass.getMethod("quickStart", ClassLoader.class, String[].class)
+                    .invoke(null, ConductorMain.class.getClassLoader(), args);
+        } catch(Exception e) {
+            logger.warn("Failed to invoke new quickStart on " + conductorClass.getCanonicalName()
+                    + " using ClassLoader and Arguments...");
+            logger.debug(e.getMessage());
+            errors.add(e);
+        }
+        try {
+            conductorClass.getMethod("quickStart", ClassLoader.class)
+                    .invoke(null, ConductorMain.class.getClassLoader());
             return true;
         } catch(Exception e) {
-            logger.warn("Failed to invoke new quickStart on " + conductorClass.getCanonicalName() + " falling back to old verison...");
+            logger.warn("Failed to invoke new quickStart on " + conductorClass.getCanonicalName()
+                    + " using ClassLoader...");
             logger.debug(e.getMessage());
             errors.add(e);
         }
