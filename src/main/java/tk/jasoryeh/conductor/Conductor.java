@@ -115,7 +115,13 @@ public class Conductor extends Boot {
 
     public static void shutdown(boolean err) {
         try {
-            getInstance().onDisable();
+            Conductor instance1 = getInstance();
+            if (instance1 == null) {
+                return;
+            }
+            qsLog.debug("Shutting down conductor instance...");
+            instance1.onDisable();
+            qsLog.debug("Finished onDisable on Conductor instance.");
         } catch(Exception e) {
             // ignore, it's only here to ensure the shutdown is always happening
             e.printStackTrace();
