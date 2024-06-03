@@ -68,7 +68,7 @@ public class JenkinsDownloader extends Downloader {
 
         boolean shouldDoRegexMatch = this.artifactName.startsWith("regex:");
         this.logger.info("Looking for artifact: " + this.artifactName + ", " +
-                (shouldDoRegexMatch ? "not using" : "using") + " RegEx match");
+                (shouldDoRegexMatch ? "using" : "not using") + " RegEx match");
         for (Artifact artifact : artifacts) {
             this.logger.debug(String.format("Found artifact | %s | %s", artifact.getFileName(), artifact.getRelativePath()));
 
