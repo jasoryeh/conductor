@@ -68,7 +68,7 @@ public class V2FolderObject extends V2FileSystemObject {
         }
 
         while (!countDownLatch.await(5, TimeUnit.SECONDS)) {
-            this.logger.info("Folder: Waiting for finishing of tasks in folder: " + this.getName());
+            this.logger.info("Folder: Waiting for finishing of tasks in folder: " + this.getName() + " tasks: " + countDownLatch.getCount());
             if (failures.get()) {
                 throw new RuntimeException("A failure occurred in folder resource preparation.");
             }
