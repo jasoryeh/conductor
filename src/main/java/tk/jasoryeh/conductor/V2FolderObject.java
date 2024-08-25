@@ -10,6 +10,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @V2FileSystemObjectTypeKey("folder")
 public class V2FolderObject extends V2FileSystemObject {
@@ -48,19 +49,30 @@ public class V2FolderObject extends V2FileSystemObject {
         File temporary = this.getTemporary();
         Assert.isTrue(temporary.exists() || temporary.mkdirs(), String.format("Creation of temp workdir at %s failed!", temporary.getAbsolutePath()));
 
+        AtomicBoolean failures = new AtomicBoolean(false);
         CountDownLatch countDownLatch = new CountDownLatch(this.children.size());
         for (V2FileSystemObject child : this.children) {
             this.conductor.threadPool.execute(() -> {
-                this.logger.debug("Executing prepartion thread on " + child.getName());
-                child.prepare();
-                this.logger.debug("Finished thread for " + child.getName());
-                countDownLatch.countDown();
-                this.logger.debug("Finished " + child.getName());
+                try {
+                    this.logger.debug("Executing prepartion thread on " + child.getName());
+                    child.prepare();
+                    this.logger.debug("Finished thread for " + child.getName());
+                    countDownLatch.countDown();
+                    this.logger.debug("Finished " + child.getName());
+                } catch(Exception e) {
+                    this.logger.info("Failure in executor service for folder " + this.getName() + ": " + e.getMessage());
+                    e.printStackTrace();
+                    failures.set(true);
+                }
             });
         }
 
-        this.logger.debug("Folder: Waiting for preparation threads to complete...");
-        countDownLatch.await();
+        while (!countDownLatch.await(5, TimeUnit.SECONDS)) {
+            this.logger.info("Folder: Waiting for finishing of tasks in folder: " + this.getName());
+            if (failures.get()) {
+                throw new RuntimeException("A failure occurred in folder resource preparation.");
+            }
+        }
         this.logger.debug("Folder: Preparation complete.");
 
         for (Plugin plugin : this.plugins) {
