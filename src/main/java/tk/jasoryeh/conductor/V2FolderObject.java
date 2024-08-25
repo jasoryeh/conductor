@@ -51,13 +51,20 @@ public class V2FolderObject extends V2FileSystemObject {
         CountDownLatch countDownLatch = new CountDownLatch(this.children.size());
         for (V2FileSystemObject child : this.children) {
             this.conductor.threadPool.execute(() -> {
+                this.logger.debug("Executing prepartion thread on " + child.getName());
                 child.prepare();
+                this.logger.debug("Finished thread for " + child.getName());
                 countDownLatch.countDown();
+                this.logger.debug("Finished " + child.getName());
             });
         }
 
+        this.logger.debug("Folder: Waiting for preparation threads to complete...");
         countDownLatch.await();
+        this.logger.debug("Folder: Preparation complete.");
+
         for (Plugin plugin : this.plugins) {
+            this.logger.debug("Folder: Running plugin: " + plugin.getClass().getCanonicalName());
             plugin.prepare();
         }
     }
@@ -65,6 +72,7 @@ public class V2FolderObject extends V2FileSystemObject {
     @Override
     public void delete() {
         for (V2FileSystemObject child : this.children) {
+            this.logger.debug("Deleting child in folder: " + child.getName());
             child.delete();
         }
         File file = this.getFile();
@@ -75,11 +83,13 @@ public class V2FolderObject extends V2FileSystemObject {
     public void apply() {
         File file = this.getFile();
         Assert.isTrue(file.exists() || file.mkdirs(), "Could not guarantee the existence of " + file.getAbsolutePath());
+        this.logger.debug("Applying folder... " + this.getName());
         for (V2FileSystemObject child : this.children) {
             child.apply();
         }
         for (Plugin plugin : this.plugins) {
             plugin.execute();
         }
+        this.logger.debug("Applied folder " + this.getName());
     }
 }

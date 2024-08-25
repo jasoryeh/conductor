@@ -21,6 +21,7 @@ public class V2FileObject extends V2FileSystemObject {
 
     @Override
     public String validate() {
+        this.logger.debug("Validating file: " + this.getName());
         boolean validateType = this.getDefinedType().equalsIgnoreCase(this.getTypeString());
         boolean validateContent = this.definition.has("content");
         return (validateType && validateContent) ? null : "Invalid definition!";
@@ -28,6 +29,7 @@ public class V2FileObject extends V2FileSystemObject {
 
     @Override
     public void parse() {
+        this.logger.debug("Parsing file: " + this.getName());
         JsonElement rawContent = V2FileSystemObject.getContentElement(this.definition);
         if (rawContent.isJsonObject()) {
             this.plugins.addAll(V2FileObject.parsePlugins(this, rawContent.getAsJsonObject()));
@@ -55,31 +57,38 @@ public class V2FileObject extends V2FileSystemObject {
         }
 
         for (Plugin plugin : this.plugins) {
+            this.logger.debug("File: Running plugin: " + plugin.getClass().getCanonicalName());
             plugin.prepare();
         }
 
         if (!this.getTemporary().exists()) {
             throw new InvalidConfigurationException("The configuration specified for " + this.name + " does not create a valid file!");
         }
+        this.logger.debug("Prepared file " + this.getName());
     }
 
     @Override
     public void delete() {
+        this.logger.debug("Deleting folder " + this.getName());
         File file = this.getFile();
         Assert.isTrue(
                 tk.jasoryeh.conductor.util.FileUtils.delete(file),
                 String.format("Deletion of %s failed!", file.getAbsolutePath()));
+        this.logger.debug("Folder deleted " + this.getName());
     }
 
     @SneakyThrows
     @Override
     public void apply() {
+        this.logger.debug("Executing plugins on file " + this.getName());
         for (Plugin plugin : this.plugins) {
             plugin.execute();
         }
+        this.logger.debug("Moving file to work folder " + this.getName());
         Files.move(
                 this.getTemporary().toPath(),
                 this.getFile().toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
+        this.logger.debug("File applied " + this.getName());
     }
 }
