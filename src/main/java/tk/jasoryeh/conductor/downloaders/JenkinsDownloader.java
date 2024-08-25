@@ -101,6 +101,7 @@ public class JenkinsDownloader extends Downloader {
             outputStream.close();
             readableByteChannel.close();
             inputStream.close();
+            this.logger.debug("Jenkins transfer complete.");
             return true;
         }
 
