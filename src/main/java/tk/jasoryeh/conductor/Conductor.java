@@ -95,7 +95,7 @@ public class Conductor extends Boot {
         this.templateConfig = new V2Template(this, rawTemplate);
         this.threadPool = new ForkJoinPool(this.launcherConfig.getPoolSize());
         this.threadPool.submit(() -> {
-            try { Thread.sleep(30); } catch(Exception e) {}
+            try { Thread.sleep(30 * 1000); } catch(Exception e) {}
             // occasionally debug-print threadpool info
             Conductor.this.logger.debug("Conductor ThreadPool info: ");
             Conductor.this.logger.debug("Pool Size: " + threadPool.getPoolSize());
