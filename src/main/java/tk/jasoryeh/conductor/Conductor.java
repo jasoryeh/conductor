@@ -94,6 +94,19 @@ public class Conductor extends Boot {
         JsonObject rawTemplate = this.launcherConfig.parseTemplateFile(templateString);
         this.templateConfig = new V2Template(this, rawTemplate);
         this.threadPool = new ForkJoinPool(this.launcherConfig.getPoolSize());
+        this.threadPool.submit(() -> {
+            try { Thread.sleep(30); } catch(Exception e) {}
+            // occasionally debug-print threadpool info
+            Conductor.this.logger.debug("Conductor ThreadPool info: ");
+            Conductor.this.logger.debug("Pool Size: " + threadPool.getPoolSize());
+            Conductor.this.logger.debug("Active Threads: " + threadPool.getActiveThreadCount());
+            Conductor.this.logger.debug("Queued: " + threadPool.getQueuedTaskCount());
+            Conductor.this.logger.debug("Parallelism: " + threadPool.getParallelism());
+            Conductor.this.logger.debug("Queued Submissions: " + threadPool.getQueuedSubmissionCount());
+            Conductor.this.logger.debug("Running Thread: " + threadPool.getRunningThreadCount());
+            Conductor.this.logger.debug("Steals: " + threadPool.getStealCount());
+            Conductor.this.logger.debug("Async Mode: " + threadPool.getAsyncMode());
+        });
 
         this.layout = this.templateConfig.buildFilesystemModel();
         this.logger.info("Found " + this.layout.size() + " root object definitions.");
