@@ -49,31 +49,39 @@ public class V2FolderObject extends V2FileSystemObject {
         File temporary = this.getTemporary();
         Assert.isTrue(temporary.exists() || temporary.mkdirs(), String.format("Creation of temp workdir at %s failed!", temporary.getAbsolutePath()));
 
+        //
+        List<Callable<Void>> subTasks = new ArrayList<>();
         AtomicBoolean failures = new AtomicBoolean(false);
         CountDownLatch countDownLatch = new CountDownLatch(this.children.size());
         for (V2FileSystemObject child : this.children) {
-            this.conductor.threadPool.execute(() -> {
-                try {
-                    this.logger.debug("Executing prepartion thread on " + child.getName());
-                    child.prepare();
-                    this.logger.debug("Finished thread for " + child.getName());
-                    countDownLatch.countDown();
-                    this.logger.debug("Finished " + child.getName());
-                } catch(Exception e) {
-                    this.logger.info("Failure in executor service for folder " + this.getName() + ": " + e.getMessage());
-                    e.printStackTrace();
-                    failures.set(true);
+            subTasks.add(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    try {
+                        V2FolderObject.this.logger.debug("Executing preparation thread on folder " + child.getName());
+                        child.prepare();
+                        V2FolderObject.this.logger.debug("Finished thread for folder " + child.getName());
+                        countDownLatch.countDown();
+                        V2FolderObject.this.logger.debug("Finished folder " + child.getName());
+                    } catch(Exception e) {
+                        V2FolderObject.this.logger.info("Failure in executor service for folder "
+                                + V2FolderObject.this.getName() + ": " + e.getMessage());
+                        e.printStackTrace();
+                        failures.set(true);
+                    }
+                    return null;
                 }
             });
         }
 
-        while (!countDownLatch.await(5, TimeUnit.SECONDS)) {
-            this.logger.info("Folder: Waiting for finishing of tasks in folder: " + this.getName() + " tasks: " + countDownLatch.getCount());
-            if (failures.get()) {
-                throw new RuntimeException("A failure occurred in folder resource preparation.");
-            }
+        this.logger.info("Folder: Waiting for finishing of tasks in folder: " + this.getName()
+                + " tasks: " + countDownLatch.getCount());
+        this.conductor.threadPool.invokeAll(subTasks);
+        if (failures.get()) {
+            throw new RuntimeException("A failure occurred in folder resource preparation.");
         }
         this.logger.debug("Folder: Preparation complete.");
+        //
 
         for (Plugin plugin : this.plugins) {
             this.logger.debug("Folder: Running plugin: " + plugin.getClass().getCanonicalName());

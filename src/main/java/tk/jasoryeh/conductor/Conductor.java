@@ -11,6 +11,7 @@ import tk.jasoryeh.conductor.util.TerminalColors;
 import tk.jasoryeh.conductor.util.Utility;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -53,24 +54,39 @@ public class Conductor extends Boot {
     @SneakyThrows
     public void execute() {
         this.logger.info("Preparing resources....");
+
+        //
+        List<Callable<Void>> subTasks = new ArrayList<>();
         AtomicBoolean failures = new AtomicBoolean(false);
-        this.layout.forEach(obj -> this.threadPool.execute(() -> {
-            try {
-                obj.prepare();
-            } catch(Exception e) {
-                this.logger.info("Failure in executor service: " + e.getMessage());
-                e.printStackTrace();
-                failures.set(true);
-            }
-        }));
-        while (!this.threadPool.awaitQuiescence(5, TimeUnit.SECONDS)) {
-            this.logger.info("Waiting for finishing of tasks: "
-                    + this.threadPool.getQueuedTaskCount() + " in line "
-                    + this.threadPool.getActiveThreadCount() + " active threads");
-            if (failures.get()) {
-                throw new RuntimeException("A failure occurred in resource preparation.");
-            }
+        CountDownLatch countDownLatch = new CountDownLatch(this.layout.size());
+        for (V2FileSystemObject child : this.layout) {
+            subTasks.add(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    try {
+                        Conductor.this.logger.debug("Executing preparation thread on conductor root " + child.getName());
+                        child.prepare();
+                        Conductor.this.logger.debug("Finished thread for conductor root " + child.getName());
+                        countDownLatch.countDown();
+                        Conductor.this.logger.debug("Finished conductor root " + child.getName());
+                    } catch(Exception e) {
+                        Conductor.this.logger.info("Failure in executor service for conductor root: " + e.getMessage());
+                        e.printStackTrace();
+                        failures.set(true);
+                    }
+                    return null;
+                }
+            });
         }
+
+        this.logger.info("Conductor: Waiting for finishing of tasks in root, tasks: " + countDownLatch.getCount());
+        this.threadPool.invokeAll(subTasks);
+        if (failures.get()) {
+            throw new RuntimeException("A failure occurred in folder resource preparation at root.");
+        }
+        this.logger.debug("Conductor: Preparation complete at root.");
+        //
+
         //this.layout.forEach(V2FileSystemObject::prepare);
 
         this.logger.info("Cleaning up work directory...");
