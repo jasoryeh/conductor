@@ -192,25 +192,35 @@ public abstract class V2FileSystemObject {
             fsObject.logger.debug("No plugins specified on " + fsObject.getName());
             return plugins;
         }
+        ArrayList<String> pluginNames = new ArrayList<>();
         JsonElement pluginElement = contentsDefinition.get("plugins");
         if (pluginElement.isJsonPrimitive()) {
             fsObject.logger.debug("Found plugin on " + fsObject.getName() + ": " + pluginElement.getAsString());
-            plugins.add(
-                    createPlugin(pluginElement.getAsString(), fsObject, contentsDefinition)
-            );
+            pluginNames.add(pluginElement.getAsString());
         } else if (pluginElement.isJsonArray()) {
+            fsObject.logger.debug("Found multiple plugins on " + fsObject.getName());
             JsonArray pluginsArray = assertJsonArray("plugins", pluginElement);
-            for (JsonElement jsonElement : pluginsArray) {
-                Assert.isTrue(jsonElement.isJsonPrimitive(), "Plugin list must be a list of JSON primitives and must be strings!");
-                fsObject.logger.debug("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
-                plugins.add(
-                        createPlugin(jsonElement.getAsString(), fsObject, contentsDefinition)
-                );
-            }
+            pluginsArray.forEach((jsonElement -> {
+                Assert.isTrue(jsonElement.isJsonPrimitive(),
+                        "Plugin list must be a list of JSON primitives and must be strings!");
+                fsObject.logger
+                        .debug("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
+                pluginNames.add(jsonElement.getAsString());
+            }));
         } else {
             // pass, plugin is probably just a folder.
             //throw new InvalidConfigurationException("Plugin list must be an array (list of strings that are plugin names) or a primitive (string of plugin name)");
         }
+
+        // load plugins
+        fsObject.logger.debug("Loading " + pluginNames.size() + " plugins: " + pluginNames.toString());
+        pluginNames.forEach((plugin) -> {
+            fsObject.logger.debug("\t..." + plugin);
+            plugins.add(
+                    createPlugin(plugin, fsObject, contentsDefinition)
+            );
+        });
+
         return plugins;
     }
 
