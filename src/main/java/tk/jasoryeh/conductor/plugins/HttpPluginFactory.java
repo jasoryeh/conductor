@@ -31,13 +31,14 @@ public class HttpPluginFactory extends PluginFactory<HttpPlugin, HttpPluginSecre
         // 2 forms of secrets
         // 1. Defines the secrets
         // 2. References an already defined secret via 'http_secret'
-        if (contentDefinition.has("http_secret")) {
-            String httpSecret = contentDefinition.get("http_secret").getAsString();
-            return ((HttpPluginSecret) this.getTemplate().getSecret(httpSecret.toLowerCase()));
-        }
 
         // build secret
         HttpPluginSecret secret = new HttpPluginSecret();
+        if (contentDefinition.has("http_secret")) {
+            String httpSecret = contentDefinition.get("http_secret").getAsString();
+            HttpPluginSecret common = ((HttpPluginSecret) this.getTemplate().getSecret(httpSecret.toLowerCase()));
+            secret.putAll(common);
+        }
 
         // headers
         if (contentDefinition.has("http_headers")) {
