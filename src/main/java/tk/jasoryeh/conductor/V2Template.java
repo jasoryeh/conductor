@@ -14,6 +14,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class V2Template {
     public static final String TEMPORARY_DIR = "launcher_tmp";
@@ -22,6 +23,7 @@ public class V2Template {
     private final Logger logger;
     @Getter
     private final Conductor conductor;
+    @Getter
     private final JsonObject rootObject;
 
     @Getter
@@ -244,5 +246,84 @@ public class V2Template {
                     .replaceAll(Pattern.quote(String.format("{{%s}}", varEntry.getKey())), varEntry.getValue());
         }
         return temp;
+    }
+
+    @SneakyThrows
+    public void startRuntime() {
+        if (this.rootObject.has("runtime")) {
+            ProcessBuilder processBuilder = new ProcessBuilder();
+
+            JsonElement rtj = this.rootObject.get("runtime");
+            Assert.isTrue(rtj.isJsonObject(), "Runtime must be a JSON object.");
+            JsonObject runtime = rtj.getAsJsonObject();
+
+            JsonElement cmd_raw = runtime.get("command");
+            Objects.requireNonNull(cmd_raw, "runtime.command must be defined!");
+            if (cmd_raw.isJsonPrimitive()) {
+                String asString = cmd_raw.getAsString();
+                processBuilder.command(
+                        Arrays.stream(asString.split(Pattern.quote(" ")))
+                                .map(e -> this.resolveVariables(e))
+                                .collect(Collectors.toList())
+                );
+            } else if (cmd_raw.isJsonArray()) {
+                ArrayList<String> cmds = new ArrayList<>();
+                for (JsonElement jsonElement : cmd_raw.getAsJsonArray()) {
+                    String asString = jsonElement.getAsString();
+                    cmds.add(this.resolveVariables(asString));
+                }
+                processBuilder.command(cmds);
+            } else {
+                throw new RuntimeException("Unexpected type at runtime.command");
+            }
+
+            if (runtime.has("environment")) {
+                JsonElement eraw = runtime.get("environment");
+                if (eraw.isJsonPrimitive()) {
+                    String asString = this.resolveVariables(eraw.getAsString());
+                    if (!asString.contains("=")) {
+                        throw new RuntimeException("Invalid environment: " + asString);
+                    }
+                    String[] split = asString.split("=", 2);
+                    processBuilder.environment().put(split[0], split.length < 2 ? "" : split[1]);
+                } else if (eraw.isJsonObject()) {
+                    JsonObject eraw_object = eraw.getAsJsonObject();
+                    for (String key : eraw_object.keySet()) {
+                        processBuilder.environment().put(key,
+                                this.resolveVariables(
+                                        eraw_object.get(key).getAsString()));
+                    }
+                } else if (eraw.isJsonArray()) {
+                    JsonArray eraw_array = eraw.getAsJsonArray();
+                    for (JsonElement element : eraw_array) {
+                        String asString = this.resolveVariables(element.getAsString());
+                        if (!asString.contains("=")) {
+                            throw new RuntimeException("Invalid environment: " + asString);
+                        }
+                        String[] split = asString.split("=", 2);
+                        processBuilder.environment().put(split[0], split.length < 2 ? "" : split[1]);
+                    }
+                } else {
+                    throw new RuntimeException("Unexpected type at runtime.environment");
+                }
+            }
+
+            if (runtime.has("directory")) {
+                processBuilder.directory(
+                        new File(
+                                this.resolveVariables(
+                                        runtime.get("directory").getAsString())
+                        )
+                );
+            }
+
+            Process process = processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT)
+                    .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                    .redirectInput(ProcessBuilder.Redirect.INHERIT)
+                    .start();
+            process.waitFor();
+        } else {
+            this.logger.debug("Finished.");
+        }
     }
 }

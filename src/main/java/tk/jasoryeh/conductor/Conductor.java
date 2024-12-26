@@ -93,6 +93,12 @@ public class Conductor extends Boot {
         this.layout.forEach(V2FileSystemObject::apply);
 
         this.logger.info("Changes applied!");
+
+        // run commands?
+        this.logger.debug("Set shutdown hook...");
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(() -> Conductor.this.templateConfig.startRuntime()));
+        this.logger.debug("\t...done");
     }
 
     @Override
