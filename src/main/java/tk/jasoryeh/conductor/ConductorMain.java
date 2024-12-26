@@ -34,8 +34,7 @@ public class ConductorMain {
     public static boolean startUpdatedConductor(String[] args) {
         logger.info("Starting updated conductor... ");
         try {
-            ConductorUpdater.startUpdatedConductor(args);
-            return true;
+            return ConductorUpdater.startUpdatedConductor(args);
         } catch(Exception e) {
             logger.debug("Failed to start updated conductor! - " + e.getMessage());
             e.printStackTrace();
