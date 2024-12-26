@@ -258,7 +258,7 @@ public abstract class V2FileSystemObject {
 
         }
 
-        return this.parent == null ? ObjectPolicy.OVERWRITE : this.parent.policy;
+        return this.parent == null ? this.conductor.getLauncherConfig().getLauncherInfo().getDefaultPolicy() : this.parent.policy;
     }
 
     public boolean hasPolicy(ObjectPolicy policy) {

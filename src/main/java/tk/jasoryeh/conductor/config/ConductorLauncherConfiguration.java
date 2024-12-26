@@ -5,6 +5,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import lombok.Getter;
 import org.apache.commons.io.FileUtils;
+import tk.jasoryeh.conductor.V2FileSystemObject;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.secrets.JenkinsPluginSecret;
 import tk.jasoryeh.conductor.util.Utility;
@@ -155,6 +156,8 @@ public class ConductorLauncherConfiguration {
         private final String config;
         @Getter
         private final String configSource;
+        @Getter
+        private final V2FileSystemObject.ObjectPolicy defaultPolicy;
 
         public ConductorLauncherInformationConfiguration(ConductorLauncherConfiguration launcherConfig) {
             this.launcherConfig = launcherConfig;
@@ -162,6 +165,10 @@ public class ConductorLauncherConfiguration {
             this.name = launcherConfig.get("name", generateName());
             this.config = launcherConfig.get("config");
             this.configSource = launcherConfig.get("config.source", "filesystem").toLowerCase();
+
+            this.defaultPolicy = V2FileSystemObject.ObjectPolicy.fromString(
+                    launcherConfig.get("policy",
+                            V2FileSystemObject.ObjectPolicy.OVERWRITE.getKey()));
         }
     }
 
