@@ -90,23 +90,44 @@ public class V2FolderObject extends V2FileSystemObject {
     }
 
     @Override
-    public void delete() {
+    public void preApply() {
         for (V2FileSystemObject child : this.children) {
-            this.logger.debug("Deleting child in folder: " + child.getName());
-            child.delete();
+            this.logger.debug("Running pre-apply on child in folder: " + child.getName());
+            child.preApply();
         }
         File file = this.getFile();
-        Assert.isTrue(FileUtils.delete(file), String.format("Deletion of %s failed!", file.getAbsolutePath()));
+
+        if (this.hadExisted && this.hasPolicy(ObjectPolicy.KEEP)) {
+            if (file.isFile()) {
+                String msg = "Folder exists, but policy enforces retention, " +
+                        "but this folder is a file (expecting: folder): " + this.getName();
+                this.logger.error(msg);
+                throw new RuntimeException(msg);
+            } else {
+                this.logger.debug("Folder exists, but policy enforces retention: " + this.getName());
+            }
+        } else {
+            // delete the folder
+            Assert.isTrue(FileUtils.delete(file), String.format("Deletion of %s failed!", file.getAbsolutePath()));
+        }
     }
 
     @Override
     public void apply() {
+        // folder ignores shouldApply because sub-items might be applied
         File file = this.getFile();
         Assert.isTrue(file.exists() || file.mkdirs(), "Could not guarantee the existence of " + file.getAbsolutePath());
-        this.logger.debug("Applying folder... " + this.getName());
+        this.logger.debug("Applying children of folder... " + this.getName());
         for (V2FileSystemObject child : this.children) {
             child.apply();
         }
+
+        if (this.hadExisted && this.hasPolicy(ObjectPolicy.KEEP)) {
+            this.logger.info("The folder will not be applied due to policy: " + this.getName());
+            return;
+        }
+
+        this.logger.debug("Applying folder... " + this.getName());
         for (Plugin plugin : this.plugins) {
             plugin.execute();
         }

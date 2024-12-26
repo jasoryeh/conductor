@@ -68,18 +68,35 @@ public class V2FileObject extends V2FileSystemObject {
     }
 
     @Override
-    public void delete() {
-        this.logger.debug("Deleting folder " + this.getName());
+    public void preApply() {
         File file = this.getFile();
-        Assert.isTrue(
-                tk.jasoryeh.conductor.util.FileUtils.delete(file),
-                String.format("Deletion of %s failed!", file.getAbsolutePath()));
-        this.logger.debug("Folder deleted " + this.getName());
+        if (this.hadExisted && this.hasPolicy(ObjectPolicy.KEEP)) {
+            if (file.isDirectory()) {
+                String msg = "File exists, and policy enforces retention, " +
+                        "but this file is a directory (expecting: file): " + this.getName();
+                this.logger.error(msg);
+                throw new RuntimeException(msg);
+            } else {
+                this.logger.debug("File exists, but policy enforces retention: " + this.getName());
+            }
+        } else {
+            this.logger.debug("Deleting file " + this.getName());
+            Assert.isTrue(
+                    tk.jasoryeh.conductor.util.FileUtils.delete(file),
+                    String.format("Deletion of %s failed!", file.getAbsolutePath()));
+            this.logger.debug("Folder deleted " + this.getName());
+        }
     }
 
     @SneakyThrows
     @Override
     public void apply() {
+        // if the file didn't exist OTHERWISE
+        // if the policy is overwrite
+        if (this.hadExisted && this.hasPolicy(ObjectPolicy.KEEP)) {
+            this.logger.info("The file will not be applied due to policy: " + this.getName());
+            return;
+        }
         this.logger.debug("Executing plugins on file " + this.getName());
         for (Plugin plugin : this.plugins) {
             plugin.execute();

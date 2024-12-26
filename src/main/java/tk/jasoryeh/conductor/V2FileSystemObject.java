@@ -11,9 +11,7 @@ import tk.jasoryeh.conductor.plugins.PluginFactory;
 import tk.jasoryeh.conductor.util.Assert;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public abstract class V2FileSystemObject {
     protected final JsonObject definition;
@@ -28,6 +26,10 @@ public abstract class V2FileSystemObject {
     String name;
     @Getter
     Conductor conductor;
+    @Getter
+    ObjectPolicy policy;
+    @Getter
+    boolean hadExisted;
 
     protected final List<Plugin> plugins = new ArrayList<>();
 
@@ -40,6 +42,8 @@ public abstract class V2FileSystemObject {
 
         this.name = name;
         this.definition = definition;
+        this.policy = this.parsePolicy();
+        this.hadExisted = this.getFile().exists();
 
         // validate
         String validationMessage = this.validate();
@@ -101,9 +105,9 @@ public abstract class V2FileSystemObject {
     public abstract void prepare();
 
     /**
-     * Delete the object from the filesystem.
+     * Runs a pre-apply routine to finalize preparation for application of the object.
      */
-    public abstract void delete();
+    public abstract void preApply();
 
     /**
      * Perform changes, and finalize any modifications required on the filesystem.
@@ -243,5 +247,70 @@ public abstract class V2FileSystemObject {
         }
         throw new IllegalStateException(
                 String.format("FSO %s is not annotated with %s!", clazz.getCanonicalName(), fsok.getCanonicalName()));
+    }
+
+    public ObjectPolicy parsePolicy() {
+        if (this.definition.has("policy")) {
+            JsonElement policy = this.definition.get("policy");
+
+            return ObjectPolicy.fromString(
+                            policy.getAsString());
+
+        }
+
+        return this.parent.policy;
+    }
+
+    public boolean hasPolicy(ObjectPolicy policy) {
+        return this.policy.equals(policy);
+    }
+
+    /**
+     * Policy of File System Objects in cases of when a file exists already.
+     */
+    public enum ObjectPolicy {
+        /**
+         * Prompt for an action from these policies.
+         * Differing from the default policy, prompts should default to inaction,
+         *  meaning the default policy for PROMPT should be KEEP.
+         *
+         * WIP: This is not implemented yet.
+         */
+        PROMPT("prompt"),
+
+        /**
+         * Keep existing contents,
+         * Folders: Don't delete the folder if exists, still makes the folder if it doesn't
+         * File: Don't update the file if exists.
+         */
+        KEEP("keep"),
+
+        /**
+         * DEFAULT:
+         * Overwrite the file/folder,
+         * Folders: Delete the folder and all of it's children, and download a new
+         * File: Delete the file, and download a new
+         */
+        OVERWRITE("overwrite");
+
+        @Getter
+        private final String key;
+
+        ObjectPolicy(String key) {
+            this.key = key;
+        }
+
+        public boolean matches(String otherKey) {
+            return this.key.equalsIgnoreCase(otherKey);
+        }
+
+        public static ObjectPolicy fromString(String key) {
+            for (ObjectPolicy policy : ObjectPolicy.values()) {
+                if (policy.matches(key)) {
+                    return policy;
+                }
+            }
+            throw new RuntimeException("Policy unknown: " + key);
+        }
     }
 }

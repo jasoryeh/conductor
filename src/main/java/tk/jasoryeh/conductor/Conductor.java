@@ -85,12 +85,9 @@ public class Conductor extends Boot {
             throw new RuntimeException("A failure occurred in folder resource preparation at root.");
         }
         this.logger.debug("Conductor: Preparation complete at root.");
-        //
 
-        //this.layout.forEach(V2FileSystemObject::prepare);
-
-        this.logger.info("Cleaning up work directory...");
-        this.layout.forEach(V2FileSystemObject::delete);
+        this.logger.info("Running last preparations...");
+        this.layout.forEach(V2FileSystemObject::preApply);
 
         this.logger.info("Applying changes to work directory...");
         this.layout.forEach(V2FileSystemObject::apply);
