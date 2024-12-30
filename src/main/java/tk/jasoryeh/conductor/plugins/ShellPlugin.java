@@ -24,6 +24,7 @@ public class ShellPlugin extends Plugin {
 
     @SneakyThrows
     private int exec(String cmd) {
+        logger.info("Executing shell: " + cmd);
         ProcessBuilder processBuilder = new ProcessBuilder();
         processBuilder.directory(this.getFsObject().getTemplate().getTemporaryDirectory());
         // todo: cross-platform support
