@@ -26,23 +26,6 @@ public class Utility {
         return FileSystems.getDefault().getPath(".").toFile();
     }
 
-    public static boolean recursiveDelete(File f) {
-        boolean success = true;
-        File[] files = f.listFiles();
-        if (files == null) {
-            logger.info("Non-existent folder! " + f.getAbsolutePath());
-            return true;
-        }
-        for (File file : files) {
-            if(file.isDirectory()) {
-                success = success && recursiveDelete(file);
-            }
-            success = success && (!file.exists() || file.delete());
-        }
-
-        return success;
-    }
-
     public static List<String> getJVMArguments() {
         RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         return runtimeMXBean.getInputArguments();
