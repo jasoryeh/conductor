@@ -5,6 +5,10 @@ import tk.jasoryeh.conductor.V2FileObject;
 import tk.jasoryeh.conductor.V2FileSystemObject;
 import tk.jasoryeh.conductor.log.Logger;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @see V2FileObject#getFile()
  * @see V2FileObject#getTemporary()
@@ -16,9 +20,24 @@ public abstract class Plugin {
     @Getter
     private V2FileSystemObject fsObject;
 
+    private Map<String, File> pluginTemporaries;
+
     public Plugin(V2FileSystemObject fsObject) {
         this.fsObject = fsObject;
         this.logger = this.fsObject.getLogger().child(this.getClass().getSimpleName());
+        this.pluginTemporaries = new HashMap<>();
+    }
+
+    public File getTemporary(String key) {
+        if (this.pluginTemporaries.containsKey(key)) {
+            return this.pluginTemporaries.get(key);
+        } else {
+            File file = new File(
+                    this.fsObject.getTemporary().getParentFile(),
+                    this.fsObject.getName() + "-" + key);
+            this.pluginTemporaries.put(key, file);
+            return file;
+        }
     }
 
     /**
