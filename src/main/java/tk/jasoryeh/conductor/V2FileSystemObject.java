@@ -52,6 +52,9 @@ public abstract class V2FileSystemObject {
         }
     }
 
+    /**
+     * @return The file representing the final destination in the working directory.
+     */
     public File getFile() {
         if (this.parent == null) {
             return new File(this.template.getWorkingDirectory(), this.name);
@@ -59,23 +62,20 @@ public abstract class V2FileSystemObject {
         return new File(this.parent.getFile(), this.name);
     }
 
+    /**
+     * @return The temporary file that the V2FileSystemObject will use in apply()
+     */
     public File getTemporary() {
-        if (this.parent == null) {
-            return new File(this.template.getTemporaryDirectory(), this.name);
-        }
-        return new File(this.parent.getTemporary(), this.buildTemporaryName());
+        return new File(
+                this.parent != null ? this.parent.getTemporary() : this.template.getTemporaryDirectory(),
+                this.buildTemporaryName());
     }
 
+    /**
+     * @return Build the name of the temporary file.
+     */
     private String buildTemporaryName() {
-        V2FileSystemObject parent = this.parent;
-        StringBuilder name = new StringBuilder();
-        while (parent != null) {
-            name.append(parent.getName());
-            name.append("-");
-            parent = parent.getParent();
-        }
-        name.append(this.name);
-        return name.toString();
+        return this.name;
     }
 
     /**
