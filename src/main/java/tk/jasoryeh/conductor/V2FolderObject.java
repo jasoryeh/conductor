@@ -128,7 +128,8 @@ public class V2FolderObject extends V2FileSystemObject {
                     "children will still be processed: " + this.getName());
         } else {
             this.logger.debug("Applying folder... " + this.getName());
-            org.apache.commons.io.FileUtils.moveDirectory(
+            Assert.isTrue(!this.getFile().exists(), "FolderObject defined at destination directory cannot exist.");
+            org.apache.commons.io.FileUtils.copyDirectory(
                     this.getTemporary(),
                     this.getFile()
             );

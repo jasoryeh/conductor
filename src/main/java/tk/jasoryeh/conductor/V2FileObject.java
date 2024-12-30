@@ -95,7 +95,7 @@ public class V2FileObject extends V2FileSystemObject {
             return;
         }
         this.logger.debug("Moving file to work folder " + this.getName());
-        Files.move(
+        Files.copy(
                 this.getTemporary().toPath(),
                 this.getFile().toPath(),
                 StandardCopyOption.REPLACE_EXISTING);

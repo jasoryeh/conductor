@@ -204,13 +204,45 @@ public abstract class V2FileSystemObject {
         return fsDefinitions;
     }
 
-    public static Plugin createPlugin(String type, V2FileSystemObject fsObject, JsonObject contentsDefinition) {
+    /**
+     * Parse plugin with name and JsonObject containing the plugin config.
+     * pluginConfigObject: {
+     *     "plugin_config1": 1,
+     *     "plugin_config2": "two"
+     * }
+     * @param type Name of plugin
+     * @param contentsDefinition JsonObject of object containing configuration for this plugin
+     * @return The plugin instance
+     */
+    public Plugin createPlugin(String type, JsonObject contentsDefinition) {
+        V2FileSystemObject fsObject = this;
         fsObject.logger.debug("Build plugin for " + fsObject.getName() + ": " + type);
         PluginFactory<?, ?> factory = fsObject.getTemplate().getPluginFactoryRepository().getPlugin(type);
         return factory.parse(fsObject, contentsDefinition);
     }
 
-    public static List<Plugin> parsePlugins(V2FileSystemObject fsObject, JsonObject contentsDefinition) {
+    public List<Plugin> parsePlugins() {
+        List<Plugin> plugins = new ArrayList<>();
+        if (this.definition.has("plugins")) {
+            plugins.addAll(this.parsePlugins(this.definition));
+        }
+        if (this.definition.has("content")) {
+            JsonElement contentElement = this.definition.get("content");
+            if (contentElement.isJsonObject() &&
+                    contentElement.getAsJsonObject().has("plugins")) {
+                plugins.addAll(this.parsePlugins(contentElement.getAsJsonObject()));
+            }
+        }
+
+        if (plugins.isEmpty()) {
+            logger.debug("No plugins specified on " + this.getName());
+        }
+
+        return plugins;
+    }
+
+    private List<Plugin> parsePlugins(JsonObject contentsDefinition) {
+        V2FileSystemObject fsObject = this;
         ArrayList<Plugin> plugins = new ArrayList<>();
         if (!contentsDefinition.has("plugins")) {
             fsObject.logger.debug("No plugins specified on " + fsObject.getName());
@@ -241,7 +273,7 @@ public abstract class V2FileSystemObject {
         pluginNames.forEach((plugin) -> {
             fsObject.logger.debug("\t..." + plugin);
             plugins.add(
-                    createPlugin(plugin, fsObject, contentsDefinition)
+                    createPlugin(plugin, contentsDefinition)
             );
         });
 
