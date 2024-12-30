@@ -163,7 +163,15 @@ public abstract class V2FileSystemObject {
         logger.debug("Building filesystem model for: " + (fsObject == null ? "(root)" : fsObject.getName()));
         ArrayList<V2FileSystemObject> fsDefinitions = new ArrayList<>();
         for (String fileName : Objects.requireNonNull(definition).keySet()) {
+            logger.debug("\t...building " + fileName);
             fileName = template.resolveVariables(fileName);
+
+            if (!definition.get(fileName).isJsonObject()) {
+                // todo: migrate plugins from content to just inside the object definition
+                logger.debug("Skipping " + fileName + ", not JSON object.");
+                continue;
+            }
+
             JsonObject fileDefinition = assertJsonObject(fileName, definition.get(fileName));
 
             String definitionType = getType(fileDefinition);
