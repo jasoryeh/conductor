@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
+import org.apache.commons.lang3.tuple.Pair;
 import tk.jasoryeh.conductor.config.InvalidConfigurationException;
 import tk.jasoryeh.conductor.log.Logger;
 import tk.jasoryeh.conductor.plugins.Plugin;
@@ -230,6 +231,7 @@ public abstract class V2FileSystemObject {
             JsonElement contentElement = this.definition.get("content");
             if (contentElement.isJsonObject() &&
                     contentElement.getAsJsonObject().has("plugins")) {
+                logger.warn("Plugins specified inside the 'content' element of objects will be deprecated in the future.");
                 plugins.addAll(this.parsePlugins(contentElement.getAsJsonObject()));
             }
         }
@@ -241,39 +243,59 @@ public abstract class V2FileSystemObject {
         return plugins;
     }
 
-    private List<Plugin> parsePlugins(JsonObject contentsDefinition) {
-        V2FileSystemObject fsObject = this;
-        ArrayList<Plugin> plugins = new ArrayList<>();
-        if (!contentsDefinition.has("plugins")) {
-            fsObject.logger.debug("No plugins specified on " + fsObject.getName());
-            return plugins;
-        }
-        ArrayList<String> pluginNames = new ArrayList<>();
-        JsonElement pluginElement = contentsDefinition.get("plugins");
+    private List<Pair<String, JsonObject>> parsePluginConfigurations(JsonObject inObject) {
+        JsonElement pluginElement = inObject.get("plugins");
+        List<Pair<String, JsonObject>> pluginConfigurations = new ArrayList<>();
         if (pluginElement.isJsonPrimitive()) {
-            fsObject.logger.debug("Found plugin on " + fsObject.getName() + ": " + pluginElement.getAsString());
-            pluginNames.add(pluginElement.getAsString());
+            // "plugins": "plugin_name"
+            this.logger.debug("Found plugin on " + this.getName() + ": " + pluginElement.getAsString());
+            pluginConfigurations.add(Pair.of(pluginElement.getAsString(), inObject));
         } else if (pluginElement.isJsonArray()) {
-            fsObject.logger.debug("Found multiple plugins on " + fsObject.getName());
+            // "plugins": [...]
+            this.logger.debug("Found multiple plugins on " + this.getName());
             JsonArray pluginsArray = assertJsonArray("plugins", pluginElement);
             pluginsArray.forEach((jsonElement -> {
-                Assert.isTrue(jsonElement.isJsonPrimitive(),
-                        "Plugin list must be a list of JSON primitives and must be strings!");
-                fsObject.logger
-                        .debug("Found plugin(s) on " + fsObject.getName() + ": " + jsonElement.getAsString());
-                pluginNames.add(jsonElement.getAsString());
+                if (jsonElement.isJsonPrimitive()) {
+                    // "plugins": [ { "type": "plugin_name1" }, { "type": "plugin_name2" } ]
+                    this.logger
+                            .debug("Found plugin(s) on " + this.getName() + ": " + jsonElement.getAsString());
+                    pluginConfigurations.add(Pair.of(jsonElement.getAsString(), inObject));
+                } else if (jsonElement.isJsonObject()) {
+                    // "plugins": [ "plugin_name1", "plugin_name2" ]
+                    JsonObject asJsonObject = jsonElement.getAsJsonObject();
+                    Assert.isTrue(asJsonObject.has("type") || asJsonObject.has("plugin"),
+                            "Plugin object must have either 'type' or 'plugin' defined.");
+                    String type = asJsonObject.has("type") ?
+                            asJsonObject.get("type").getAsString() : asJsonObject.get("plugin").getAsString();
+                    this.logger
+                            .debug("Found plugin definition object on: " + this.getName() + ": " + type);
+                    pluginConfigurations.add(Pair.of(type, asJsonObject));
+                } else {
+                    throw new RuntimeException("Plugins must be a list of JSON primitives or JSON objects for each plugin.");
+                }
             }));
         } else {
             // pass, plugin is probably just a folder.
             //throw new InvalidConfigurationException("Plugin list must be an array (list of strings that are plugin names) or a primitive (string of plugin name)");
         }
+        return pluginConfigurations;
+    }
+
+    private List<Plugin> parsePlugins(JsonObject contentsDefinition) {
+        ArrayList<Plugin> plugins = new ArrayList<>();
+        if (!contentsDefinition.has("plugins")) {
+            this.logger.debug("No plugins specified on " + this.getName());
+            return plugins;
+        }
+        List<Pair<String, JsonObject>> pluginConfigurations = this.parsePluginConfigurations(contentsDefinition);
 
         // load plugins
-        fsObject.logger.debug("Loading " + pluginNames.size() + " plugins: " + pluginNames.toString());
-        pluginNames.forEach((plugin) -> {
-            fsObject.logger.debug("\t..." + plugin);
+        this.logger.debug("Loading " + pluginConfigurations.size() +
+                " plugins: " + pluginConfigurations.stream().map(Pair::getKey).toString());
+        pluginConfigurations.forEach((pair) -> {
+            this.logger.debug("\t..." + pair.getKey());
             plugins.add(
-                    createPlugin(plugin, contentsDefinition)
+                    createPlugin(pair.getKey(), pair.getValue())
             );
         });
 

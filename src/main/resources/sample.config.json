@@ -23,6 +23,13 @@
       "SOME_VARIABLE2": "some other value..."
     }
   },
+  "runtime": {
+    "command": "java -jar paper.jar",
+    "directory": "./",
+    "environment": {
+      "SOME_ENVIRONMENT": "blahblahblah"
+    }
+  },
   "filesystem": {
     "local-file.ext": {
       "type": "file",
@@ -39,27 +46,39 @@
     "download-file-direct.ext": {
       "type": "file",
       "content": {
-        "plugins": "http",
-        "http": "https://static.somewhere.org/file/file-to-download-and-some-variable-{{SOME_VARIABLE1}}.txt",
-        "http_secret": "http_auth_1"
+        "plugins": [
+          {
+            "type": "http",
+            "http": "https://static.somewhere.org/file/file-to-download-and-some-variable-{{SOME_VARIABLE1}}.txt",
+            "http_secret": "http_auth_1"
+          }
+        ]
       }
     },
     "download-file-zipped.ext": {
       "type": "file",
       "content": {
-        "plugins": ["http"],
-        "http": "https://static.somewhere.org/file/file-to-download.txt",
-        "http_secret": "http_auth_1",
-        "unzip_location": "/sub/directory/to/file.txt"
+        "plugins": [
+          {
+            "type": "http",
+            "http": "https://static.somewhere.org/file/file-to-download.txt",
+            "http_secret": "http_auth_1",
+            "unzip_location": "/sub/directory/to/file.txt"
+          }
+        ]
       }
     },
     "jenkins-file.ext": {
       "type": "file",
       "content": {
-        "plugins": "jenkins",
-        "jenkins_job": "JobName",
-        "jenkins_artifact": "artifact-file-versionSomething.jar",
-        "jenkins_secret": "jenkins_1"
+        "plugins": [
+          {
+            "type": "jenkins",
+            "jenkins_job": "JobName",
+            "jenkins_artifact": "artifact-file-versionSomething.jar",
+            "jenkins_secret": "jenkins_1"
+          }
+        ]
       }
     },
     "folder-defined": {
@@ -72,9 +91,13 @@
     "zip-download": {
       "type": "file",
       "content": {
-        "plugins": "http",
-        "http": "https://static.somewhere.org/file/archive-to-download.zip",
-        "http_secret": "http_auth_1"
+        "plugins": [
+          {
+            "type": "http",
+            "http": "https://static.somewhere.org/file/archive-to-download.zip",
+            "http_secret": "http_auth_1"
+          }
+        ]
       }
     }
   }
