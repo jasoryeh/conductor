@@ -56,8 +56,7 @@ public abstract class Plugin {
     /**
      * Perform changes to the final destination.
      *
-     * - Typically to copy the prepared resource from temporary directory
-     *      or memory to the final file location.
+     * - Typically to act on the file on the working directory (e.g. decryption or formatting)
      *
      * @see V2FileSystemObject#getFile()
      */
