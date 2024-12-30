@@ -251,6 +251,7 @@ public class V2Template {
     @SneakyThrows
     public void startRuntime() {
         if (this.rootObject.has("runtime")) {
+            logger.info("Starting after-Conductor command... ");
             ProcessBuilder processBuilder = new ProcessBuilder();
 
             JsonElement rtj = this.rootObject.get("runtime");
@@ -276,6 +277,7 @@ public class V2Template {
             } else {
                 throw new RuntimeException("Unexpected type at runtime.command");
             }
+            logger.info("\t... > " + String.join(" ", processBuilder.command()));
 
             if (runtime.has("environment")) {
                 JsonElement eraw = runtime.get("environment");
@@ -321,7 +323,8 @@ public class V2Template {
                     .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                     .redirectInput(ProcessBuilder.Redirect.INHERIT)
                     .start();
-            process.waitFor();
+            int status = process.waitFor();
+            this.logger.debug("Process exited, status code: " + status);
         } else {
             this.logger.debug("Finished.");
         }
