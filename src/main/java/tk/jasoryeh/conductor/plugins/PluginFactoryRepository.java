@@ -15,6 +15,7 @@ public class PluginFactoryRepository {
         this.logger = template.getLogger().child(this.getClass().getSimpleName());
         this.register(new HttpPluginFactory(template));
         this.register(new JenkinsPluginFactory(template));
+        this.register(new ShellPluginFactory(template));
     }
 
     /**
