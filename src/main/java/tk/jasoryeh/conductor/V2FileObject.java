@@ -30,10 +30,7 @@ public class V2FileObject extends V2FileSystemObject {
     @Override
     public void parse() {
         this.logger.debug("Parsing file: " + this.getName());
-        JsonElement rawContent = V2FileSystemObject.getContentElement(this.definition);
-        if (rawContent.isJsonObject()) {
-            this.plugins.addAll(V2FileObject.parsePlugins(this, rawContent.getAsJsonObject()));
-        }
+        this.plugins.addAll(this.parsePlugins());
     }
 
     @SneakyThrows

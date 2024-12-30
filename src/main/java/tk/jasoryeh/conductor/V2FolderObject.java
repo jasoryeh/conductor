@@ -33,7 +33,7 @@ public class V2FolderObject extends V2FileSystemObject {
         this.logger.debug("Parsing " + this.name);
         JsonObject contentDefinition = assertJsonObject("content",
                 V2FileSystemObject.getContentElement(this.definition));
-        this.plugins.addAll(V2FileObject.parsePlugins(this, contentDefinition));
+        this.plugins.addAll(this.parsePlugins());
         this.children = V2FileSystemObject.buildFilesystemModel(this,
                 contentDefinition);
         this.logger.debug("    ...and children");
