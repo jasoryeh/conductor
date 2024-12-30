@@ -97,15 +97,15 @@ public class V2FileObject extends V2FileSystemObject {
             this.logger.info("The file will not be applied due to policy: " + this.getName());
             return;
         }
-        this.logger.debug("Executing plugins on file " + this.getName());
-        for (Plugin plugin : this.plugins) {
-            plugin.execute();
-        }
         this.logger.debug("Moving file to work folder " + this.getName());
         Files.move(
                 this.getTemporary().toPath(),
                 this.getFile().toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
+        this.logger.debug("Executing plugins on file " + this.getName());
+        for (Plugin plugin : this.plugins) {
+            plugin.execute();
+        }
         this.logger.debug("File applied " + this.getName());
     }
 }

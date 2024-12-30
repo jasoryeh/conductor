@@ -112,25 +112,32 @@ public class V2FolderObject extends V2FileSystemObject {
         }
     }
 
-    @Override
-    public void apply() {
-        // folder ignores shouldApply because sub-items might be applied
-        File file = this.getFile();
-        Assert.isTrue(file.exists() || file.mkdirs(), "Could not guarantee the existence of " + file.getAbsolutePath());
+    public void applyChildren() {
         this.logger.debug("Applying children of folder... " + this.getName());
         for (V2FileSystemObject child : this.children) {
             child.apply();
         }
+    }
 
+    @SneakyThrows
+    @Override
+    public void apply() {
+        // folder ignores shouldApply because sub-items might be applied
         if (this.hadExisted && this.hasPolicy(ObjectPolicy.KEEP)) {
-            this.logger.info("The folder will not be applied due to policy: " + this.getName());
-            return;
+            this.logger.info("The folder will not be applied due to policy, " +
+                    "children will still be processed: " + this.getName());
+        } else {
+            this.logger.debug("Applying folder... " + this.getName());
+            org.apache.commons.io.FileUtils.moveDirectory(
+                    this.getTemporary(),
+                    this.getFile()
+            );
+            for (Plugin plugin : this.plugins) {
+                plugin.execute();
+            }
+            this.logger.debug("Applied folder " + this.getName());
         }
 
-        this.logger.debug("Applying folder... " + this.getName());
-        for (Plugin plugin : this.plugins) {
-            plugin.execute();
-        }
-        this.logger.debug("Applied folder " + this.getName());
+        this.applyChildren();
     }
 }
