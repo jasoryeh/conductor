@@ -67,7 +67,7 @@ public abstract class V2FileSystemObject {
      */
     public File getTemporary() {
         return new File(
-                this.parent != null ? this.parent.getTemporary() : this.template.getTemporaryDirectory(),
+                this.template.getTemporaryDirectory(),
                 this.buildTemporaryName());
     }
 
@@ -75,7 +75,19 @@ public abstract class V2FileSystemObject {
      * @return Build the name of the temporary file.
      */
     private String buildTemporaryName() {
-        return this.name;
+        ArrayList<V2FileSystemObject> parents = new ArrayList<>();
+        V2FileSystemObject parent = this.getParent();
+        while (parent != null) {
+            parents.add(parent);
+            parent = parent.getParent();
+        }
+
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = parents.size() - 1; i >= 0; i--) {
+            stringBuilder.append(parents.get(i).getName()).append("-");
+        }
+        stringBuilder.append(this.name);
+        return stringBuilder.toString();
     }
 
     /**
