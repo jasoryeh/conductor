@@ -1,33 +1,42 @@
-# conductor
+`# conductor
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/jasoryeh/conductor/maven.yml)
 
-A way to update, download, remove servers with one jar file. The configuration defines the layout of a program's filesystem by text as well as where to locate resources for each file in the filesystem.
+A tool to update, download, remove servers with one jar file. 
+The configuration defines the layout of a program's filesystem 
+by text as well as where to locate resources for each file in 
+the filesystem.
 
 Requires Jave 8 and above (8+)
 
 ## Why?
 1. Simplify updates across networks/in container builds
-2. Well-defined known-working filesystem layout that can be reproduced and easily shared may be useful in some use cases (such as in ephemeral applications)
-3. For fun, think of this like a "game launcher" but for servers
+2. Well-defined known-working filesystem layout that can be 
+   reproduced and easily shared may be useful in some use cases 
+   (such as in ephemeral applications)
+3. Assists with continuous deployment of servers where 
+   development assets may be built and updated frequently.
+4. For fun, think of this like a "game launcher" but for servers
+5. Templatizing configuration supports ease of deployment for 
+   end-users and systems administrators.
 
 ## Configuration
 ### serverlauncher.properties
-See `resources/serverlauncher.properties` for a template
-### <server_cnf_location>.json
-See `resources/sample.config.json` for a template
+See `resources/serverlauncher.properties` for a template. 
+
+- Typically `serverlauncher.properties` and placed in the same folder as `conductor.jar`
+- Alternatively (when CONDUCTOR_ISCONFIGLESS is present) the configuration can be specified as environment variables in the format of `CONDUCTOR_SERVERLAUNCHER_PROPERTIES_<KEY>` for each key where special characters are replaced with `_`
+### server_cnf.json
+See `resources/sample.config.json` for a template.
 
 ## Usage
 
 ### What you need to start:
 1. `conductor.jar`: A build of conductor, can be named anything, but we will reference it as just `conductor.jar`
-   - If specified in the Conductor configuration (see below), all builds will try and upgrade themselves if a source to retrieve upgrades is specified
-2. A Conductor configuration:
-   - Typically `serverlauncher.properties` and placed in the same folder as `conductor.jar`
-   - Alternatively (when CONDUCTOR_ISCONFIGLESS is present) the configuration can be specified as environment variables in the format of `CONDUCTOR_SERVERLAUNCHER_PROPERTIES_<KEY>` for each key where special characters are replaced with `_`
-3. Your template configuration: Your program's folder layout, we call this the "template"
+   - If specified in the Conductor configuration (see below), all builds will try and upgrade themselves if a source to retrieve upgrades is specified2. A Conductor configuration:
+2. Your template configuration: Your program's folder layout, we call this the "template"
    - Typically `server_cnf.json` and placed in the same folder as `conductor.jar`
    - Alternatively, if specified otherwise in the Conductor configuration, it can be named otherwise OR can be served/generated from a remote asset server
-4. (if applicable) Relevant remote sources (jenkins, asset server) online and serving the resources specified in your template
+3. (if applicable) Relevant remote sources (jenkins, asset server) online and serving the resources specified in your template
    - Conductor will typically abort if the resource in inaccessible or fails to be downloaded, but additional protections are not yet implemented
 
 When all of those are in place, simply `java -jar conductor.jar`, Conductor will exit gracefully (exit code 0) if all sources are downloaded and the template is successfully installed.
@@ -37,6 +46,7 @@ Conductor assembles your program's file structure using a configuration that is 
 
 At the root of a template exists two root elements, `_conductor` and `filesystem`
 - `_conductor`: Contains metadata and information about secrets and variables that may change
+- `runtime`: Optional configuration- if you would like Conductor to handle starting your program for you, configure this option.
 - `filesystem`: Contains a layout of the filesystem that conductor will install, top level elements in the `filesystem` element act as a file at the same level as `conductor.jar`
 
 #### Dynamically changing variables and secrets
@@ -65,15 +75,16 @@ The main attraction of the Conductor Template are the filesystem objects that sp
 1. File
 2. Folder
 
-##### File object configuration
-Key: File name and extension (e.g. `filename.ext`, `document.pdf`, `test.txt`)
+##### File/Folder Object configuration
+Key: File name and extension (e.g. `filename.ext`, `document.pdf`, `test.txt`, `some_directory`)
+
 Value:
 - `type`: `file`
-- `content`: json object
-  - `plugins`: string (if one plugin) or array (if more than one plugin) or undefined/null/empty array (if no plugins)
-  - `<plugin>_<value>`: plugin-dependent
+- `plugins`: `[ { "type": "plugin_type", "plugin_config_option1": ..., ..., "plugin_config_optionN": ...,  } ]`
+- `content`: 
+  - `JSON Object` for folders
+    - Where the key is the file name, and the value is another File Object from this definition
+  - `JSON Array` of strings for files that are text-only, binary files are not supported at this moment
 
-##### Folder object configuration
-Same as File object configuration, but objects in `content` are treated as file objects. Using folder objects one can create folders and file within a folder.
-
-A difference between file and folder object handling is that folder objects will always create their folder first and evaluate nested filesystem objects within them first before it runs itself.
+Folders differ from Files such that Folders will always apply the folder first before
+evaluating nested objects within them.
