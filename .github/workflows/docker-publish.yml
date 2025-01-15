@@ -9,11 +9,8 @@ jobs:
     name: Build and Push
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4.2.2
-      with:
-        ref: v2
-    - name: Get tags
-      run: git fetch --tags origin
+    - name: Checkout
+      uses: actions/checkout@v4.2.2
     - name: Docker QEMU
       uses: docker/setup-qemu-action@v3.3.0
     - name: Buildx Setup
