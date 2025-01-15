@@ -23,7 +23,7 @@ public class V2FileObject extends V2FileSystemObject {
     public String validate() {
         this.logger.debug("Validating file: " + this.getName());
         boolean validateType = this.getDefinedType().equalsIgnoreCase(this.getTypeString());
-        boolean validateContent = this.definition.has("content");
+        boolean validateContent = this.json_hasContent();
         return (validateType && validateContent) ? null : "Invalid definition!";
     }
 
@@ -36,7 +36,7 @@ public class V2FileObject extends V2FileSystemObject {
     @SneakyThrows
     @Override
     public void prepare() {
-        JsonElement contentDefinition = getContentElement(this.definition);
+        JsonElement contentDefinition = this.json_getContent();
         String asString;
         if (contentDefinition.isJsonArray()) {
             StringBuilder buildTextFile = new StringBuilder();

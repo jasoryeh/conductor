@@ -24,15 +24,14 @@ public class V2FolderObject extends V2FileSystemObject {
     @Override
     public String validate() {
         boolean validateType = this.getDefinedType().equalsIgnoreCase(this.getTypeString());
-        boolean validateContent = this.definition.has("content");
+        boolean validateContent = this.json_hasContent();
         return (validateType && validateContent) ? null : "Invalid definition!";
     }
 
     @Override
     public void parse() {
         this.logger.debug("Parsing " + this.name);
-        JsonObject contentDefinition = assertJsonObject("content",
-                V2FileSystemObject.getContentElement(this.definition));
+        JsonObject contentDefinition = assertJsonObject("content", this.json_getContent());
         this.plugins.addAll(this.parsePlugins());
         this.children = V2FileSystemObject.buildFilesystemModel(this,
                 contentDefinition);

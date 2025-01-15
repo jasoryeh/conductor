@@ -156,11 +156,15 @@ public abstract class V2FileSystemObject {
         return o.get("type").getAsString().toLowerCase();
     }
 
-    public static JsonElement getContentElement(JsonObject o) {
-        if (!o.has("content")) {
+    public boolean json_hasContent() {
+        return this.definition.has("content");
+    }
+
+    public JsonElement json_getContent() {
+        if (!this.json_hasContent()) {
             throw new InvalidConfigurationException("A template definition does not have it's content defined!");
         }
-        return o.get("content");
+        return this.definition.get("content");
     }
 
     public static List<V2FileSystemObject> buildFilesystemModel(V2Template template, JsonObject definition) {
@@ -227,8 +231,8 @@ public abstract class V2FileSystemObject {
         if (this.definition.has("plugins")) {
             plugins.addAll(this.parsePlugins(this.definition));
         }
-        if (this.definition.has("content")) {
-            JsonElement contentElement = this.definition.get("content");
+        if (this.json_hasContent()) {
+            JsonElement contentElement = this.json_getContent();
             if (contentElement.isJsonObject() &&
                     contentElement.getAsJsonObject().has("plugins")) {
                 logger.warn("Plugins specified inside the 'content' element of objects will be deprecated in the future.");
@@ -304,7 +308,7 @@ public abstract class V2FileSystemObject {
 
     public String getDefinedType() {
         if (!this.definition.has("type")) {
-            throw new IllegalArgumentException("A type must be defined on all template FSOs!");
+            throw new IllegalArgumentException("A type must be defined on all template file system objects!");
         }
         return this.definition.get("type").getAsString();
     }
