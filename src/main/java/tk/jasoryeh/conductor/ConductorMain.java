@@ -27,10 +27,19 @@ public class ConductorMain {
         logger.info("<-- Conductor #main() end.");
     }
 
+    /**
+     * Boot the current version of Conductor.
+     * @param args The args from #main(String[] args)
+     */
     public static void startExistingConductor(String[] args) {
         Conductor.quickStart(ConductorMain.class.getClassLoader(), args);
     }
 
+    /**
+     * Boot the new version of Conductor.
+     * @param args The args from #main(String[] args)
+     * @return Whether conductor was successfully started.
+     */
     public static boolean startUpdatedConductor(String[] args) {
         logger.info("Starting updated conductor... ");
         try {
@@ -42,6 +51,10 @@ public class ConductorMain {
         }
     }
 
+    /**
+     * Actual startup logic.
+     * @param args The args from #main(String[] args)
+     */
     public static void init(String[] args) {
         boolean updateResult = ConductorUpdater.update();
 
@@ -55,7 +68,6 @@ public class ConductorMain {
 
         boolean startUpdatedResult = startUpdatedConductor(args);
         logger.info("Updated conductor run: " + (startUpdatedResult ? "success" : "failure"));
-
         Conductor.shutdown(false);
     }
 
