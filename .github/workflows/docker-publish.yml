@@ -3,6 +3,8 @@ name: Docker Image and Push
 on:
   push:
     branches: [ "v2" ]
+  schedule:
+  - cron: "0 1 * * *"
 
 jobs:
   deploy:
