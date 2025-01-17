@@ -32,4 +32,4 @@ jobs:
         push: true
         platforms: linux/amd64,linux/aarch64
         tags: jasoryeh/conductor:actions-test
-
+        context: .
