@@ -1,4 +1,4 @@
-`# conductor
+# conductor
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/jasoryeh/conductor/maven.yml)
 
 A tool to update, download, remove servers with one jar file. 
