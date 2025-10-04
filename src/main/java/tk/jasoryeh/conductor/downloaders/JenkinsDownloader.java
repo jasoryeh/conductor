@@ -63,8 +63,8 @@ public class JenkinsDownloader extends Downloader {
         Build build = this.number == LATEST_SUCCESSFUL_ARTIFACT ?
                 details.getLastSuccessfulBuild() :
                 details.getBuildByNumber(this.number);
-        List<Artifact> artifacts =  build.details().getArtifacts();
-        this.logger.debug(String.format("Found %d artifacts for job %s", artifacts.size(), this.job));
+        List<Artifact> artifacts = build.details().getArtifacts();
+        this.logger.debug(String.format("Found %d artifacts for job %s, build %s", artifacts.size(), this.job, this.number));
 
         boolean shouldDoRegexMatch = this.artifactName.startsWith("regex:");
         this.logger.info("Looking for artifact: " + this.artifactName + ", " +
