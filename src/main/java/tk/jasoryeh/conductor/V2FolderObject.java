@@ -59,14 +59,16 @@ public class V2FolderObject extends V2FileSystemObject {
                     try {
                         V2FolderObject.this.logger.debug("Executing preparation thread on folder " + child.getName());
                         child.prepare();
-                        V2FolderObject.this.logger.debug("Finished thread for folder " + child.getName());
-                        countDownLatch.countDown();
                         V2FolderObject.this.logger.debug("Finished folder " + child.getName());
                     } catch(Exception e) {
                         V2FolderObject.this.logger.info("Failure in executor service for folder "
                                 + V2FolderObject.this.getName() + ": " + e.getMessage());
                         e.printStackTrace();
                         failures.set(true);
+                        throw e;
+                    } finally {
+                        countDownLatch.countDown();
+                        V2FolderObject.this.logger.debug("Finished thread for folder " + child.getName());
                     }
                     return null;
                 }

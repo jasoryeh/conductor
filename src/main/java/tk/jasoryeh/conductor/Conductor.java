@@ -66,13 +66,15 @@ public class Conductor extends Boot {
                     try {
                         Conductor.this.logger.debug("Executing preparation thread on conductor root " + child.getName());
                         child.prepare();
-                        Conductor.this.logger.debug("Finished thread for conductor root " + child.getName());
-                        countDownLatch.countDown();
                         Conductor.this.logger.debug("Finished conductor root " + child.getName());
                     } catch(Exception e) {
                         Conductor.this.logger.info("Failure in executor service for conductor root: " + e.getMessage());
                         e.printStackTrace();
                         failures.set(true);
+                        throw e;
+                    } finally {
+                        countDownLatch.countDown();
+                        Conductor.this.logger.debug("Finished thread for conductor root " + child.getName());
                     }
                     return null;
                 }
